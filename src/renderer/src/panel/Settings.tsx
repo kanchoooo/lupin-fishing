@@ -312,8 +312,24 @@ export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
               />
               <span className="faint num">{Math.round(s.clearOpacity * 100)}%</span>
             </label>
+            <div className="set-row">
+              <span>선·글자 색</span>
+              <div className="seg">
+                {(
+                  [
+                    ['auto', '자동'],
+                    ['dark', '검정'],
+                    ['light', '흰색']
+                  ] as const
+                ).map(([v, l]) => (
+                  <button key={v} className={s.clearInk === v ? 'on' : ''} onClick={() => set({ clearInk: v })}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="faint">
-              뒤 화면이 비치고 낚시꾼·찌·물고기만 보여요. 마우스를 올리거나 낚는 중엔 또렷해지고, 빈 하늘을 누르면 뒤 창이 눌려요. 위쪽 막대는 마우스를 올리면 나와요.
+              뒤 화면이 비치고 낚시꾼·찌·물결·오늘 금액만 보여요. 마우스를 올리거나 낚는 중엔 또렷해지고, 빈 하늘을 누르면 뒤 창이 눌려요. 버튼은 마우스를 올리면 나와요. 색은 자동이면 컴퓨터가 다크 모드일 때 흰색, 아니면 검정이에요.
             </div>
           </>
         ) : (

@@ -20,6 +20,8 @@ export interface Settings {
   look: Look
   /** 투명 모양의 진하기 (0.3 ~ 1). 마우스를 올리거나 낚는 중엔 또렷하게 */
   clearOpacity: number
+  /** 투명 모양의 선·글자 색: auto = 컴퓨터가 다크 모드면 밝게, 아니면 검게 */
+  clearInk: 'auto' | 'dark' | 'light'
   /** 단축키 (Electron accelerator, 예 'Control+Alt+L'). null = 안 씀 */
   lookShortcut: string | null
   memoShortcut: string | null

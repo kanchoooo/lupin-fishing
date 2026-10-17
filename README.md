@@ -15,7 +15,8 @@
 ![낚시터](docs/img/screen.png)
 
 - 낚시터 창은 물·낚시꾼·위쪽 막대를 잡고 끌어서 화면 어디로든 옮기고, 물 위 **▼(낚시 자리)** 는 끌어서 던질 자리를 정함
-- 투명 모양: 평소엔 흐리게(진하기 설정), 마우스를 올리거나 낚는 중엔 또렷하게. 빈 하늘을 누르면 클릭이 뒤 창으로 지나감 (`setIgnoreMouseEvents` + 메인이 커서 위치를 30Hz 로 알려 줌)
+- 투명 모양: 바탕·테두리 없이 낚시꾼·찌·물결 선·게이지·오늘 금액만. 평소엔 흐리게(진하기 설정), 마우스를 올리거나 낚는 중엔 또렷하게, 버튼은 마우스를 올리면. 빈 하늘을 누르면 클릭이 뒤 창으로 지나감 (`setIgnoreMouseEvents` + 메인이 커서 위치를 30Hz 로 알려 줌)
+- 투명 모양 선·글자 색: 자동(컴퓨터가 다크 모드면 흰색, 아니면 검정) · 검정 · 흰색. 풍경용 회색을 밝기 뒤집어 검은 선으로 바꿔 그림 (`scene.ts` 의 `inkPixels`)
 - 맥 / 윈도우 (Electron 44 + TypeScript + React)
 - 그림: 이미지 파일 없이 도트 문자열로 그림 (`src/renderer/src/art/sprites.ts`, 장면은 `widget/scene.ts`)
 - 효과음: WebAudio 8비트 합성 (`src/renderer/src/common/sound.ts`)
@@ -108,9 +109,10 @@ src/renderer/src/
 
 ```bash
 npm run build
-# 단계별 장면 한 장에 (scenes = 풍경 · clear = 투명 모양을 흰 문서/어두운 화면 위에)
+# 단계별 장면 한 장에 (scenes = 풍경 · clear / clear-dark = 투명 모양)
 LUPIN_HEADLESS=1 LUPIN_LAB=scenes LUPIN_SIZE=760x900 LUPIN_SHOT=scenes.png npx electron .
-LUPIN_HEADLESS=1 LUPIN_LAB=clear LUPIN_SIZE=760x900 LUPIN_SHOT=clear.png npx electron .
+LUPIN_HEADLESS=1 LUPIN_LAB=clear LUPIN_SIZE=760x900 LUPIN_SHOT=clear.png npx electron .        # 흰 문서 위 검은 선
+LUPIN_HEADLESS=1 LUPIN_LAB=clear-dark LUPIN_SIZE=760x900 LUPIN_SHOT=clear-dark.png npx electron . # 어두운 화면 위 흰 선
 # 앱 아이콘 다시 만들기
 LUPIN_HEADLESS=1 LUPIN_LAB=icon LUPIN_SIZE=1024x1024 LUPIN_SHOT=build/icon.png npx electron .
 # 시나리오: 낚시터·패널을 조작하고 캡처 (shots/)

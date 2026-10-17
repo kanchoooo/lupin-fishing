@@ -387,13 +387,39 @@
   border-radius: 3px;
 }
 
-/* 투명 모양: 바탕 없이, 평소엔 흐리게 · 마우스를 올리거나 낚는 중엔 또렷하게 */
+/* 투명 모양: 바탕·테두리 없이, 평소엔 흐리게 · 마우스를 올리거나 낚는 중엔 또렷하게 */
 .widget.clear {
   background: transparent;
   outline: none;
 }
 body.widget:has(.widget.clear) {
   background: transparent;
+}
+/* 검은 선 (밝은 화면 위): 글자도 진하게 */
+.widget.clear.ink-dark {
+  --text: #1a1a1a;
+  --text-2: #444444;
+  --text-3: #777777;
+  --gold: #b8860b;
+  --green: #1f9d4a;
+  --red: #e03131;
+  --blue: #1c7ed6;
+  --purple: #7048e8;
+}
+.widget.clear.ink-dark .r-common {
+  --r: #666666;
+}
+.widget.clear.ink-dark .r-uncommon {
+  --r: #1f9d4a;
+}
+.widget.clear.ink-dark .r-rare {
+  --r: #1c7ed6;
+}
+.widget.clear.ink-dark .r-epic {
+  --r: #7048e8;
+}
+.widget.clear.ink-dark .r-legend {
+  --r: #b8860b;
 }
 .widget.clear .stage,
 .widget.clear .bar {
@@ -404,14 +430,113 @@ body.widget:has(.widget.clear) {
 .widget.clear.lit .bar {
   opacity: 1;
 }
+/* 위쪽 막대: 오늘 금액은 늘, 버튼은 마우스를 올렸을 때만 */
 .widget.clear .bar {
-  background: rgba(0, 0, 0, 0.72);
+  background: none;
   border-bottom-color: transparent;
+}
+.widget.clear:not(.hover) .bar button {
   visibility: hidden;
 }
-.widget.clear.hover .bar {
-  visibility: visible;
+.widget.clear .bar button:hover {
+  border-color: transparent;
+  text-decoration: underline;
+}
+.widget.clear .bar .mode {
+  border-color: transparent;
+}
+.widget.clear .bar .mode.auto {
+  background: none;
+  color: var(--gold);
 }
 .widget.clear .stage {
   cursor: default;
+}
+/* 글자는 바탕·그림자 없이 글자만 */
+.widget.clear .stage-tag {
+  background: none;
+  color: var(--text);
+  padding: 0;
+}
+.widget.clear .hint,
+.widget.clear .label,
+.widget.clear .pop,
+.widget.clear .fail-t,
+.widget.clear .fail-s {
+  text-shadow: none;
+}
+.widget.clear .tag {
+  background: none;
+  color: var(--text-2);
+  padding: 0;
+}
+.widget.clear .tag.new {
+  color: var(--gold);
+}
+.widget.clear .tag.rec {
+  color: var(--red);
+}
+.widget.clear .tag.hot {
+  color: var(--green);
+}
+.widget.clear .tag.perf {
+  color: var(--blue);
+}
+
+/* 투명 모양의 잡았다! — 작게, 바탕 없이 (낚시꾼 오른쪽 위) */
+.result.compact {
+  left: calc(50px * var(--s));
+  right: calc(3px * var(--s));
+  top: calc(2px * var(--s));
+  bottom: auto;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: calc(3px * var(--s));
+  color: var(--text);
+}
+.result.compact .res-pic {
+  width: calc(32px * var(--s));
+  height: calc(18px * var(--s));
+  flex: none;
+}
+.result.compact .res-name {
+  font-size: var(--fs);
+  font-family: var(--fs-font);
+  line-height: 1.25;
+  color: var(--r);
+}
+.widget.s2 .result.compact .res-name,
+.widget.s3 .result.compact .res-name {
+  font-size: var(--fs);
+}
+.result.compact .res-size {
+  color: var(--text-2);
+  line-height: 1.25;
+}
+.result.compact .res-price {
+  font-size: var(--fs);
+  font-family: var(--fs-font);
+  color: var(--gold);
+}
+.result.compact .res-tags {
+  min-height: 0;
+  line-height: 1.25;
+}
+.result.compact .share {
+  align-self: flex-start;
+  background: none;
+  color: var(--text-2);
+  text-decoration: underline;
+  padding: 0;
+}
+.result.compact .share:hover {
+  color: var(--text);
+}
+.widget.clear.ink-dark .onboard {
+  color: #ffffff;
+  box-shadow: none;
 }

@@ -1,4 +1,4 @@
-// 그림 확인용 페이지 (앱에는 안 들어감): lab.html#icon · #sheet · #scenes · #clear (투명 모양을 밝은·어두운 바탕 위에)
+// 그림 확인용 페이지 (앱에는 안 들어감): lab.html#icon · #sheet · #scenes · #clear (투명 모양, 흰 문서 위 검은 선) · #clear-dark (어두운 화면 위 밝은 선)
 import '@/common/base.css'
 import { FISH, RARITY } from '@shared/fish'
 import { SCENE_H, SCENE_W } from '@shared/types'
@@ -118,7 +118,8 @@ async function main(): Promise<void> {
     })
     return
   }
-  const clear = page === 'clear'
+  const clear = page === 'clear' || page === 'clear-dark'
+  const ink = page === 'clear-dark' ? 'light' : 'dark'
   // scenes: 단계별 장면
   const phases: [Phase, string][] = [
     ['idle', ''],
@@ -138,17 +139,13 @@ async function main(): Promise<void> {
   tmp.width = SCENE_W
   tmp.height = SCENE_H
   const tc = tmp.getContext('2d')!
-  /** 투명 모양 확인용 가짜 바탕화면: 왼쪽은 흰 문서, 오른쪽은 어두운 편집기 */
+  /** 투명 모양 확인용 가짜 바탕화면: 흰 문서 (clear-dark 는 어두운 편집기) */
   const desk = (x: number, y: number, w: number, h: number): void => {
-    c.fillStyle = '#ffffff'
-    c.fillRect(x, y, w / 2, h)
-    c.fillStyle = '#1e1f24'
-    c.fillRect(x + w / 2, y, w / 2, h)
+    c.fillStyle = ink === 'dark' ? '#ffffff' : '#1e1f24'
+    c.fillRect(x, y, w, h)
     for (let yy = y + 8; yy < y + h - 6; yy += 14) {
-      c.fillStyle = '#c9ced6'
-      c.fillRect(x + 10, yy, ((yy * 37) % (w / 2 - 40)) + 30, 6)
-      c.fillStyle = '#4b5263'
-      c.fillRect(x + w / 2 + 10, yy, ((yy * 53) % (w / 2 - 40)) + 20, 6)
+      c.fillStyle = ink === 'dark' ? '#dfe3e8' : '#3b4252'
+      c.fillRect(x + 10, yy, ((yy * 37) % (w - 60)) + 40, 6)
     }
   }
   phases.forEach(([ph, fish], i) => {
@@ -167,7 +164,7 @@ async function main(): Promise<void> {
     g.particles = []
     g.shake = 0
     g.flash = 0
-    renderScene(tc, g, clear ? 'clear' : 'scene')
+    renderScene(tc, g, clear ? 'clear' : 'scene', ink)
     const x = (i % 2) * (SCENE_W * S + 10) + 10
     const y = Math.floor(i / 2) * (SCENE_H * S + 26) + 20
     if (clear) desk(x, y, SCENE_W * S, SCENE_H * S)

@@ -8,7 +8,7 @@ import { fitScale, spriteImage } from '@/art/draw'
 import { setMuted, setSound, sfx } from '@/common/sound'
 import { usePersisted, useMinute } from '@/common/store'
 import { FAR_X, Game, NEAR_X, WATER_Y, type Phase } from './game'
-import { renderScene } from './scene'
+import { renderScene, type Ink } from './scene'
 import { Sticky } from './Sticky'
 
 const platform = window.api.platform
@@ -27,6 +27,32 @@ const STAGE: Partial<Record<Phase, string>> = { bite: '① 입질', fight: '② 
 /** 손을 쓰는 중인 단계: 투명 모양이어도 창 전체가 클릭을 받고 또렷하게 */
 const ACTIVE: Phase[] = ['charge', 'bite', 'fight', 'finish', 'landing', 'result']
 
+/** 투명 모양 + 검은 선(밝은 화면 위)일 때 글자 색: 밝은 색은 흰 바탕에서 안 보이니 진한 색으로 */
+const DARK_INK_TEXT: Record<string, string> = {
+  '#ffffff': '#1a1a1a',
+  '#fff': '#1a1a1a',
+  '#ffd23f': '#b8860b',
+  '#6fe08c': '#1f9d4a',
+  '#ff4d4d': '#e03131',
+  '#9a9a9a': '#555555',
+  '#5cb6ff': '#1c7ed6',
+  '#c690ff': '#7048e8',
+  '#c8c8c8': '#666666'
+}
+
+const darkMq = window.matchMedia('(prefers-color-scheme: dark)')
+
+/** 컴퓨터가 다크 모드인지 (투명 모양 색 '자동') */
+function useDarkMode(): boolean {
+  const [dark, set] = useState(darkMq.matches)
+  useEffect(() => {
+    const on = (): void => set(darkMq.matches)
+    darkMq.addEventListener('change', on)
+    return () => darkMq.removeEventListener('change', on)
+  }, [])
+  return dark
+}
+
 export function Widget(): React.JSX.Element {
   const st = usePersisted()
   const minute = useMinute()
@@ -40,6 +66,11 @@ export function Widget(): React.JSX.Element {
   const disguisedRef = useRef(false)
   const [ui, setUi] = useState<Ui>({ phase: 'idle', hint: '', stage: '', label: null, pop: null, fail: null, result: null })
   const [toast, setToast] = useState('')
+  const darkMode = useDarkMode()
+  const pref = st?.settings.clearInk ?? 'auto'
+  const ink: Ink = pref === 'auto' ? (darkMode ? 'light' : 'dark') : pref
+  const inkRef = useRef(ink)
+  inkRef.current = ink
   // 투명 모양: 마우스가 낚시터 위에 있는지 (메인이 알려 준다)
   const [hover, setHover] = useState(false)
   const hoverAt = useRef<{ x: number; y: number } | null>(null)
@@ -343,7 +374,7 @@ export function Widget(): React.JSX.Element {
       const now = performance.now()
       game.update((now - last) / 1000)
       last = now
-      renderScene(c, game, stRef.current?.settings.look ?? 'clear')
+      renderScene(c, game, stRef.current?.settings.look ?? 'clear', inkRef.current)
       sync()
       syncThroughRef.current()
       const calm = (game.phase === 'idle' || game.phase === 'wait') && !game.particles.length && !game.ripples.length && game.shake <= 0 && game.dip <= 0
@@ -374,7 +405,8 @@ export function Widget(): React.JSX.Element {
   const clear = (s?.look ?? 'clear') === 'clear'
   // 투명 모양: 평소엔 흐리게, 마우스를 올리거나 낚는 중엔 또렷하게
   const lit = !clear || hover || disguised || ACTIVE.includes(ui.phase) || !!toast || (!!st && !st.onboarded)
-  const look = clear ? `clear ${lit ? 'lit' : ''} ${hover ? 'hover' : ''}` : 'scene'
+  const look = clear ? `clear ink-${ink} ${lit ? 'lit' : ''} ${hover ? 'hover' : ''}` : 'scene'
+  const tc = (color: string): string => (clear && ink === 'dark' ? (DARK_INK_TEXT[color.toLowerCase()] ?? color) : color)
 
   return (
     <div className={`widget s${scale} ${look}`} style={{ ['--s' as string]: scale, ['--op' as string]: s?.clearOpacity ?? 0.85 }}>
@@ -410,12 +442,12 @@ export function Widget(): React.JSX.Element {
         <canvas ref={cvRef} width={SCENE_W} height={SCENE_H} style={{ width: SCENE_W * scale, height: SCENE_H * scale }} />
         {ui.stage && <div className="stage-tag">{ui.stage}</div>}
         {ui.label && (
-          <div className="label" style={{ color: ui.label.color }}>
+          <div className="label" style={{ color: tc(ui.label.color) }}>
             {ui.label.text}
           </div>
         )}
         {ui.pop && (
-          <div key={ui.pop.id} className="pop" style={{ color: ui.pop.color }}>
+          <div key={ui.pop.id} className="pop" style={{ color: tc(ui.pop.color) }}>
             {ui.pop.text}
           </div>
         )}
@@ -426,7 +458,7 @@ export function Widget(): React.JSX.Element {
             {ui.fail.sub && <div className="fail-s">{ui.fail.sub}</div>}
           </div>
         )}
-        {ui.result && <ResultCard fish={ui.result.fish} size={ui.result.size} res={ui.result.res} scale={scale} onShare={share} />}
+        {ui.result && <ResultCard fish={ui.result.fish} size={ui.result.size} res={ui.result.res} scale={scale} compact={clear} onShare={share} />}
         {st && !st.onboarded && ui.phase === 'idle' && (
           <div className="onboard">
             <b>{keyName}</b> 꾹 눌렀다 떼면 던져요
@@ -441,7 +473,7 @@ export function Widget(): React.JSX.Element {
   )
 }
 
-function ResultCard(p: { fish: string; size: number; res: CatchResult | null; scale: number; onShare: () => void }): React.JSX.Element {
+function ResultCard(p: { fish: string; size: number; res: CatchResult | null; scale: number; compact: boolean; onShare: () => void }): React.JSX.Element {
   const def = FISH_BY_ID[p.fish]
   const ref = useRef<HTMLDivElement>(null)
   const rec = p.res?.record
@@ -449,21 +481,50 @@ function ResultCard(p: { fish: string; size: number; res: CatchResult | null; sc
     const box = ref.current
     if (!box) return
     box.innerHTML = ''
-    const sc = fitScale(p.fish, 56, 34, 4) * p.scale
+    // 투명 모양은 작게 (낚시를 가리지 않게)
+    const sc = (p.compact ? fitScale(p.fish, 30, 16, 2) : fitScale(p.fish, 56, 34, 4)) * p.scale
     const img = spriteImage(p.fish, sc)
     box.appendChild(img)
-  }, [p.fish, p.scale])
+  }, [p.fish, p.scale, p.compact])
   if (!def) return <></>
   const r = RARITY[def.rarity]
+  const tags = (
+    <>
+      {p.res?.isNew && <span className="tag new">NEW!</span>}
+      {p.res?.isRecord && <span className="tag rec">신기록!</span>}
+      {rec?.hot && <span className="tag hot">시세 ×2</span>}
+      {rec?.perfect && <span className="tag perf">PERFECT</span>}
+      {rec?.auto && <span className="tag">자동</span>}
+    </>
+  )
+  const shareBtn = (
+    <button className="share" onPointerDown={(e) => e.stopPropagation()} onClick={p.onShare}>
+      자랑하기
+    </button>
+  )
+  if (p.compact) {
+    return (
+      <div className={`result compact r-${def.rarity}`}>
+        <div className="res-pic" ref={ref} />
+        <div className="res-info">
+          <div className="res-name">
+            {def.name} <span className="rar">{r.label}</span>
+          </div>
+          <div className="res-size">
+            {fmtSize(p.size)} <span className="res-price">{rec ? `+${fmtWon(rec.price)}` : '…'}</span>
+          </div>
+          <div className="res-tags">
+            {tags}
+            {p.res?.rankUp && <span className="rankup">승진! {p.res.rankUp}</span>}
+          </div>
+        </div>
+        {shareBtn}
+      </div>
+    )
+  }
   return (
     <div className={`result r-${def.rarity}`}>
-      <div className="res-tags">
-        {p.res?.isNew && <span className="tag new">NEW!</span>}
-        {p.res?.isRecord && <span className="tag rec">신기록!</span>}
-        {rec?.hot && <span className="tag hot">시세 ×2</span>}
-        {rec?.perfect && <span className="tag perf">PERFECT</span>}
-        {rec?.auto && <span className="tag">자동</span>}
-      </div>
+      <div className="res-tags">{tags}</div>
       <div className="res-body">
         <div className="res-pic" ref={ref} />
         <div className="res-info">
@@ -479,9 +540,7 @@ function ResultCard(p: { fish: string; size: number; res: CatchResult | null; sc
       </div>
       <div className="res-foot">
         {p.res?.rankUp ? <span className="rankup">승진! {p.res.rankUp} 루팡</span> : <span className="faint">{def.desc}</span>}
-        <button className="share" onPointerDown={(e) => e.stopPropagation()} onClick={p.onShare}>
-          자랑하기
-        </button>
+        {shareBtn}
       </div>
     </div>
   )

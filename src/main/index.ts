@@ -79,6 +79,8 @@ function createWidget(): void {
     skipTaskbar: true,
     // 투명 모양: 창 바탕을 비워 두고 낚시꾼·찌·물고기만 그린다 (풍경 모양은 화면이 까맣게 채운다)
     transparent: true,
+    // 맥·윈도우 11 이 테두리 없는 창에 그리는 둥근 모서리·가는 테두리선을 없앤다
+    roundedCorners: false,
     hasShadow: store.state.settings.look === 'scene',
     // 맥: 다른 앱을 쓰다가 눌러도 첫 클릭부터 낚시가 되게
     acceptFirstMouse: true,
