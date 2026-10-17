@@ -392,8 +392,10 @@
   background: transparent;
   outline: none;
 }
+/* body 에도 .widget 클래스가 붙어 있어서 풍경용 바탕·테두리선이 같이 걸린다 → 투명 모양에선 둘 다 없앤다 */
 body.widget:has(.widget.clear) {
   background: transparent;
+  outline: none;
 }
 /* 검은 선 (밝은 화면 위): 글자도 진하게 */
 .widget.clear.ink-dark {
