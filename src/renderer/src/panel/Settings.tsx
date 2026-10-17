@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { MIN_WAGE_2026 } from '@shared/day'
 import { globalCapable, harmless, keyLabel, macNeedsAccess } from '@shared/keys'
-import type { PersistedState, Settings } from '@shared/types'
+import { accelFromEvent, accelLabel, defaultShortcuts } from '@shared/shortcut'
+import type { PersistedState, Settings, ShortcutName } from '@shared/types'
 
 const platform = window.api.platform
 const isMac = platform === 'darwin'
@@ -115,6 +116,82 @@ function KeyRow(p: {
   )
 }
 
+/** 단축키 (조합 키) 고르기 */
+function ShortcutRow(p: { title: string; desc: string; value: string | null; other: string | null; ok: boolean; def: string; onChange: (a: string | null) => void }): React.JSX.Element {
+  const [capturing, setCapturing] = useState(false)
+  const [err, setErr] = useState('')
+  const [mods, setMods] = useState('')
+  const { onChange, other } = p
+  useEffect(() => {
+    if (!capturing) return
+    // 고르는 동안엔 이미 걸린 단축키가 가로채지 않게 잠깐 끈다
+    void window.api.suspendShortcuts(true)
+    const onKey = (e: KeyboardEvent): void => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.code === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
+        setCapturing(false)
+        return
+      }
+      const r = accelFromEvent(e, platform)
+      if ('wait' in r) {
+        setMods(accelLabel([e.metaKey && (isMac ? 'Command' : 'Super'), e.ctrlKey && 'Control', e.altKey && 'Alt', e.shiftKey && 'Shift', '…'].filter(Boolean).join('+'), platform, true))
+        return
+      }
+      if ('error' in r) {
+        setErr(r.error)
+        return
+      }
+      if (r.accel === other) {
+        setErr('다른 단축키와 겹쳐요')
+        return
+      }
+      setErr('')
+      onChange(r.accel)
+      setCapturing(false)
+    }
+    const onUp = (e: KeyboardEvent): void => {
+      if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) setMods('')
+    }
+    window.addEventListener('keydown', onKey, true)
+    window.addEventListener('keyup', onUp, true)
+    return () => {
+      window.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('keyup', onUp, true)
+      setMods('')
+      void window.api.suspendShortcuts(false)
+    }
+  }, [capturing, other, onChange])
+  return (
+    <div className="set-row col">
+      <div className="row between">
+        <div>
+          <div>{p.title}</div>
+          <div className="faint">{p.desc}</div>
+        </div>
+        <div className="row">
+          <button className={`key ${capturing ? 'cap' : ''}`} onClick={() => setCapturing(!capturing)}>
+            {capturing ? mods || '조합 키를 누르세요…' : accelLabel(p.value, platform, true)}
+          </button>
+          {p.value && !capturing && (
+            <button className="mini" onClick={() => onChange(null)}>
+              없음
+            </button>
+          )}
+          {!p.value && !capturing && (
+            <button className="mini" onClick={() => onChange(p.def)}>
+              기본
+            </button>
+          )}
+        </div>
+      </div>
+      {capturing && <div className="faint">예: {accelLabel(p.def, platform, true)} · Ctrl·Alt·Shift{isMac ? '·Command' : ''} 와 같이, F 키는 혼자도 돼요 (ESC = 취소)</div>}
+      {err && <div className="warn">{err}</div>}
+      {p.value && !capturing && (p.ok ? <div className="ok">다른 앱을 쓰는 중에도 돼요</div> : <div className="warn">⚠ 다른 앱이 이미 이 단축키를 쓰고 있어요. 다른 조합으로 바꿔 주세요</div>)}
+    </div>
+  )
+}
+
 export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
   const s = st.settings
   const set = (patch: Partial<Settings>): void => void window.api.setSettings(patch)
@@ -125,6 +202,8 @@ export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
   const [upd, setUpd] = useState('')
   const [resetStep, setResetStep] = useState(0)
   const [wage, setWage] = useState(String(s.hourlyWage))
+  const [scOk, setScOk] = useState<Record<ShortcutName, boolean>>({ look: true, memo: true })
+  const defs = defaultShortcuts()
 
   useEffect(() => {
     void window.api.keyReaderOk().then(setKeyOk)
@@ -140,6 +219,9 @@ export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
     }
   }, [])
   useEffect(() => setWage(String(s.hourlyWage)), [s.hourlyWage])
+  useEffect(() => {
+    void window.api.shortcutStatus().then(setScOk)
+  }, [s.lookShortcut, s.memoShortcut])
 
   return (
     <div className="settings">
@@ -173,7 +255,7 @@ export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
         />
         <KeyRow
           title="위장 키"
-          desc="누르면 낚시터가 업무용 표로 바뀌어요 (ESC 도 돼요)"
+          desc="누르면 낚시터가 평범한 스티커 메모로 바뀌어요 (ESC 도 돼요)"
           value={s.bossKey}
           other={s.reelKey}
           allowNone
@@ -205,6 +287,39 @@ export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
       <section className="box">
         <div className="sec-h">낚시터 창</div>
         <div className="set-row">
+          <span>모양</span>
+          <div className="seg">
+            <button className={s.look === 'clear' ? 'on' : ''} onClick={() => set({ look: 'clear' })}>
+              투명 (필요한 것만)
+            </button>
+            <button className={s.look === 'scene' ? 'on' : ''} onClick={() => set({ look: 'scene' })}>
+              풍경 (밤 연못)
+            </button>
+          </div>
+        </div>
+        {s.look === 'clear' ? (
+          <>
+            <label className="check">
+              <span>진하기</span>
+              <input
+                className="range"
+                type="range"
+                min={0.3}
+                max={1}
+                step={0.05}
+                value={s.clearOpacity}
+                onChange={(e) => set({ clearOpacity: Number(e.target.value) })}
+              />
+              <span className="faint num">{Math.round(s.clearOpacity * 100)}%</span>
+            </label>
+            <div className="faint">
+              뒤 화면이 비치고 낚시꾼·찌·물고기만 보여요. 마우스를 올리거나 낚는 중엔 또렷해지고, 빈 하늘을 누르면 뒤 창이 눌려요. 위쪽 막대는 마우스를 올리면 나와요.
+            </div>
+          </>
+        ) : (
+          <div className="faint">밤하늘·빌딩·연못이 다 보이는 원래 모양이에요.</div>
+        )}
+        <div className="set-row">
           <span>크기</span>
           <div className="seg">
             {[
@@ -222,10 +337,32 @@ export function SettingsTab({ st }: { st: PersistedState }): React.JSX.Element {
           <input type="checkbox" checked={s.alwaysOnTop} onChange={(e) => set({ alwaysOnTop: e.target.checked })} />
           <span>항상 맨 위에 (다른 창에 가려지지 않게)</span>
         </label>
-        <div className="faint">낚시터는 아무 데나 잡고 끌어서 옮길 수 있어요.</div>
+        <div className="faint">낚시터는 물·낚시꾼·위쪽 막대를 잡고 끌어서 옮길 수 있어요.</div>
         <button className="pix-btn" onClick={() => void window.api.showWidget()}>
           낚시터 꺼내기
         </button>
+      </section>
+
+      <section className="box">
+        <div className="sec-h">단축키</div>
+        <ShortcutRow
+          title="투명 ↔ 풍경 바꾸기"
+          desc="낚시터 모양을 바로 바꿔요"
+          value={s.lookShortcut}
+          other={s.memoShortcut}
+          ok={scOk.look}
+          def={defs.lookShortcut}
+          onChange={(a) => set({ lookShortcut: a })}
+        />
+        <ShortcutRow
+          title="새 스티커 메모"
+          desc="어디서든 누르면 새 메모가 떠서 바로 쓸 수 있어요"
+          value={s.memoShortcut}
+          other={s.lookShortcut}
+          ok={scOk.memo}
+          def={defs.memoShortcut}
+          onChange={(a) => set({ memoShortcut: a })}
+        />
       </section>
 
       <section className="box">

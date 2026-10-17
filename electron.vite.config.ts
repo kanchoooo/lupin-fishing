@@ -24,6 +24,7 @@ export default defineConfig({
         input: {
           widget: resolve('src/renderer/widget.html'),
           panel: resolve('src/renderer/panel.html'),
+          memo: resolve('src/renderer/memo.html'),
           lab: resolve('src/renderer/lab.html')
         }
       }

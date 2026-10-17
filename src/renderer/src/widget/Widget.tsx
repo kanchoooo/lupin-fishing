@@ -3,14 +3,13 @@ import { dayKey, fmtTime, fmtWon, rankTitle } from '@shared/day'
 import { FISH_BY_ID, fmtSize, hotFishOf, RARITY } from '@shared/fish'
 import { globalCapable, shortKey } from '@shared/keys'
 import type { CatchResult, PersistedState } from '@shared/types'
-import { SCENE_H, SCENE_W } from '@shared/types'
+import { BAR_H, SCENE_H, SCENE_W } from '@shared/types'
 import { fitScale, spriteImage } from '@/art/draw'
-import { makeCatchCard } from '@/common/share'
 import { setMuted, setSound, sfx } from '@/common/sound'
 import { usePersisted, useMinute } from '@/common/store'
 import { FAR_X, Game, NEAR_X, WATER_Y, type Phase } from './game'
 import { renderScene } from './scene'
-import { Sheet } from './Sheet'
+import { Sticky } from './Sticky'
 
 const platform = window.api.platform
 
@@ -25,6 +24,8 @@ interface Ui {
 }
 
 const STAGE: Partial<Record<Phase, string>> = { bite: '① 입질', fight: '② 힘겨루기', finish: '③ 피니시' }
+/** 손을 쓰는 중인 단계: 투명 모양이어도 창 전체가 클릭을 받고 또렷하게 */
+const ACTIVE: Phase[] = ['charge', 'bite', 'fight', 'finish', 'landing', 'result']
 
 export function Widget(): React.JSX.Element {
   const st = usePersisted()
@@ -39,6 +40,10 @@ export function Widget(): React.JSX.Element {
   const disguisedRef = useRef(false)
   const [ui, setUi] = useState<Ui>({ phase: 'idle', hint: '', stage: '', label: null, pop: null, fail: null, result: null })
   const [toast, setToast] = useState('')
+  // 투명 모양: 마우스가 낚시터 위에 있는지 (메인이 알려 준다)
+  const [hover, setHover] = useState(false)
+  const hoverAt = useRef<{ x: number; y: number } | null>(null)
+  const throughRef = useRef(false)
 
   const game = useMemo(
     () =>
@@ -75,6 +80,38 @@ export function Widget(): React.JSX.Element {
     void window.api.keyReaderOk().then(setKeyOk)
   }, [])
 
+  /** 투명 모양에서 지금 마우스 자리가 클릭을 받아야 하나 (아니면 뒤 창으로 지나간다) */
+  const wantsMouse = (): boolean => {
+    const set = stRef.current?.settings
+    if (!set || set.look !== 'clear') return true
+    if (disguisedRef.current || down.current || ACTIVE.includes(game.phase)) return true
+    const p = hoverAt.current
+    if (!p) return false
+    const sc = set.scale
+    const x = p.x / sc
+    const y = p.y / sc - BAR_H
+    // 위쪽 막대 · 낚시꾼과 데크 · 물 (▼ 자리·찌 포함)
+    return y < 0 || (x < 40 && y > 28) || y >= WATER_Y - 14
+  }
+  const syncThrough = (): void => {
+    const through = !wantsMouse()
+    if (through === throughRef.current) return
+    throughRef.current = through
+    void window.api.setMouseThrough(through)
+  }
+  const syncThroughRef = useRef(syncThrough)
+  syncThroughRef.current = syncThrough
+
+  useEffect(
+    () =>
+      window.api.onHover((p) => {
+        hoverAt.current = p
+        setHover(!!p)
+        syncThroughRef.current()
+      }),
+    []
+  )
+
   // ───────── 위장 (일하는 척) ─────────
   const toggleDisguise = (): void => {
     const on = !disguisedRef.current
@@ -84,6 +121,7 @@ export function Widget(): React.JSX.Element {
     if (on) game.held = false
     setMuted(on)
     void window.api.setDisguised(on)
+    syncThroughRef.current()
   }
   const toggleRef = useRef(toggleDisguise)
   toggleRef.current = toggleDisguise
@@ -99,6 +137,9 @@ export function Widget(): React.JSX.Element {
     const onKeyDown = (e: KeyboardEvent): void => {
       const set = stRef.current?.settings
       if (!set) return
+      // 위장 메모에 글 쓰는 중: ESC 만 (돌아가기)
+      const typing = e.target instanceof HTMLTextAreaElement
+      if (typing && e.code !== 'Escape') return
       if (e.code === 'Escape' || (e.code === set.bossKey && !globalOn(set.bossKey))) {
         if (!e.repeat) toggleRef.current()
         e.preventDefault()
@@ -112,7 +153,7 @@ export function Widget(): React.JSX.Element {
     }
     const onKeyUp = (e: KeyboardEvent): void => {
       const set = stRef.current?.settings
-      if (!set) return
+      if (!set || e.target instanceof HTMLTextAreaElement) return
       const isReel = (e.code === set.reelKey && !globalOn(set.reelKey)) || e.code === 'Space'
       if (isReel) game.release()
     }
@@ -210,6 +251,7 @@ export function Widget(): React.JSX.Element {
     const d = down.current
     down.current = null
     if (!d) return
+    setTimeout(() => syncThroughRef.current(), 0)
     if (d.grab) {
       game.dragging = null
       void window.api.setSettings({ spot: Math.round(game.spot * 1000) / 1000 })
@@ -254,7 +296,7 @@ export function Widget(): React.JSX.Element {
         const list =
           game.mode === 'auto'
             ? ['자동 낚시 중 · 성공률 낮음', `입질(!) 때 ${k} 누르면 직접 잡기`, '물 위 ▼ 를 끌어 낚시 자리 옮기기', `오늘의 시세: ${hot.name} ×2`]
-            : [`${k} 꾹 → 떼면 던지기${viaWindow}`, '물 위 ▼ 를 끌어 낚시 자리 옮기기', '멀리 자리 잡을수록 희귀한 물고기', '빈 곳을 끌면 낚시터 창이 옮겨져요', `오늘의 시세: ${hot.name} ×2`, rankTitle(stRef.current?.total.earn ?? 0)]
+            : [`${k} 꾹 → 떼면 던지기${viaWindow}`, '물 위 ▼ 를 끌어 낚시 자리 옮기기', '멀리 자리 잡을수록 희귀한 물고기', stRef.current?.settings.look === 'scene' ? '빈 곳을 끌면 낚시터 창이 옮겨져요' : '물·낚시꾼을 끌면 낚시터 창이 옮겨져요', `오늘의 시세: ${hot.name} ×2`, rankTitle(stRef.current?.total.earn ?? 0)]
         if (performance.now() - hintAt > 4200) {
           hintAt = performance.now()
           hintIdx++
@@ -301,8 +343,9 @@ export function Widget(): React.JSX.Element {
       const now = performance.now()
       game.update((now - last) / 1000)
       last = now
-      renderScene(c, game)
+      renderScene(c, game, stRef.current?.settings.look ?? 'clear')
       sync()
+      syncThroughRef.current()
       const calm = (game.phase === 'idle' || game.phase === 'wait') && !game.particles.length && !game.ripples.length && game.shake <= 0 && game.dip <= 0
       if (calm) to = setTimeout(frame, 70)
       else raf = requestAnimationFrame(frame)
@@ -321,17 +364,20 @@ export function Widget(): React.JSX.Element {
   const today = st?.days[dayKey()]?.earn ?? 0
   void minute
 
-  const share = async (): Promise<void> => {
+  // 자랑하기: 패널에서 카드 이미지를 먼저 보여 주고 공유 · 저장
+  const share = (): void => {
     const r = ui.result?.res
-    if (!r || !st) return
-    const url = await makeCatchCard(r.record, { isNew: r.isNew, isRecord: r.isRecord, total: st.total.earn })
-    const res = await window.api.saveImage(url, `${FISH_BY_ID[r.record.fish]?.name ?? '물고기'}-자랑`)
-    setToast(res === 'saved' ? '저장 + 복사했어요!' : res === 'copied' ? '이미지를 복사했어요!' : '')
-    setTimeout(() => setToast(''), 2200)
+    if (!r) return
+    void window.api.requestShare({ id: r.record.id, isNew: r.isNew, isRecord: r.isRecord })
   }
 
+  const clear = (s?.look ?? 'clear') === 'clear'
+  // 투명 모양: 평소엔 흐리게, 마우스를 올리거나 낚는 중엔 또렷하게
+  const lit = !clear || hover || disguised || ACTIVE.includes(ui.phase) || !!toast || (!!st && !st.onboarded)
+  const look = clear ? `clear ${lit ? 'lit' : ''} ${hover ? 'hover' : ''}` : 'scene'
+
   return (
-    <div className={`widget s${scale}`} style={{ ['--s' as string]: scale }}>
+    <div className={`widget s${scale} ${look}`} style={{ ['--s' as string]: scale, ['--op' as string]: s?.clearOpacity ?? 0.85 }}>
       <div className="bar">
         <span className="today" title="오늘 낚시로 번 돈 (자정에 0부터)">
           <span className="faint">오늘</span> {fmtWon(today)}
@@ -347,10 +393,13 @@ export function Widget(): React.JSX.Element {
           {s?.mode === 'auto' ? '자동' : '수동'}
         </button>
         <span className="grow" />
-        <button className="ico" title="도감 · 수익 · 설정" onClick={() => void window.api.openPanel('dex')}>
+        <button className="ico" title={clear ? '풍경 모양으로 (설정에서 단축키)' : '투명 모양으로 (설정에서 단축키)'} onClick={() => void window.api.setSettings({ look: clear ? 'scene' : 'clear' })}>
+          ◐
+        </button>
+        <button className="ico" title="도감 · 수익 · 메모 · 설정" onClick={() => void window.api.openPanel('dex')}>
           ☰
         </button>
-        <button className="ico" title="일하는 척 위장 (ESC)" onClick={toggleDisguise}>
+        <button className="ico" title="일하는 척 위장 — 메모로 변신 (ESC)" onClick={toggleDisguise}>
           ▤
         </button>
         <button className="ico" title="낚시터 치우기 (트레이에서 다시 꺼내기)" onClick={() => void window.api.hideWidget()}>
@@ -370,7 +419,7 @@ export function Widget(): React.JSX.Element {
             {ui.pop.text}
           </div>
         )}
-        {ui.hint && <div className={`hint ${ui.phase === 'bite' && !game.auto ? 'hot' : ''}`}>{ui.hint}</div>}
+        {ui.hint && (!clear || hover || ACTIVE.includes(ui.phase)) && <div className={`hint ${ui.phase === 'bite' && !game.auto ? 'hot' : ''}`}>{ui.hint}</div>}
         {ui.fail && (
           <div className="fail">
             <div className="fail-t">{ui.fail.text}</div>
@@ -387,7 +436,7 @@ export function Widget(): React.JSX.Element {
         )}
         {toast && <div className="toast">{toast}</div>}
       </div>
-      {disguised && <Sheet today={today} state={st} onRestore={toggleDisguise} />}
+      {disguised && <Sticky onRestore={toggleDisguise} />}
     </div>
   )
 }

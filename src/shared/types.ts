@@ -1,4 +1,6 @@
 export type Mode = 'auto' | 'manual'
+/** 낚시터 모양: clear = 투명 (낚시꾼·찌·물고기만, 뒤 화면이 비친다) · scene = 풍경 (밤 연못 전체) */
+export type Look = 'clear' | 'scene'
 
 export interface Settings {
   mode: Mode
@@ -15,6 +17,12 @@ export interface Settings {
   /** 낚시 자리 (0 = 물가 · 1 = 가장 멀리) — 물 위 ▼ 를 끌어서 바꾼다 */
   spot: number
   alwaysOnTop: boolean
+  look: Look
+  /** 투명 모양의 진하기 (0.3 ~ 1). 마우스를 올리거나 낚는 중엔 또렷하게 */
+  clearOpacity: number
+  /** 단축키 (Electron accelerator, 예 'Control+Alt+L'). null = 안 씀 */
+  lookShortcut: string | null
+  memoShortcut: string | null
   sound: boolean
   volume: number
   openAtLogin: boolean
@@ -66,6 +74,8 @@ export interface PersistedState {
   recent: CatchRecord[]
   widgetPos: { x: number; y: number } | null
   onboarded: boolean
+  /** 값 체계 버전 (2 = 0.2.0 에서 값을 올림) */
+  priceVer?: number
 }
 
 export interface CatchInput {
@@ -83,7 +93,44 @@ export interface CatchResult {
   rankUp: string | null
 }
 
-export type PanelTab = 'dex' | 'money' | 'settings' | 'about'
+export type PanelTab = 'dex' | 'money' | 'memo' | 'settings' | 'about'
+
+/** 낚시터 결과 카드의 '자랑하기' → 패널에서 미리 보기 */
+export interface ShareRequest {
+  id: string
+  isNew?: boolean
+  isRecord?: boolean
+}
+
+// ───────── 스티커 메모 ─────────
+
+export type MemoColor = 'yellow' | 'pink' | 'green' | 'blue' | 'purple' | 'gray' | 'black'
+
+export interface Memo {
+  id: string
+  text: string
+  color: MemoColor
+  x: number
+  y: number
+  w: number
+  h: number
+  /** 항상 맨 위에 */
+  pinned: boolean
+  /** 화면에서 치움 (휴지통은 아님) */
+  hidden?: boolean
+  createdAt: number
+  updatedAt: number
+  /** 휴지통에 넣은 시각 */
+  deletedAt?: number
+}
+
+export interface MemoState {
+  memos: Memo[]
+  /** 위장 메모: 낚시터가 변신하는 메모에 쓴 글 */
+  boss: string
+}
+
+export type ShortcutName = 'look' | 'memo'
 
 /** 전역 키 이벤트 (메인이 읽어 낚시터에 보낸다) */
 export interface KeyEvent {
@@ -133,7 +180,36 @@ export interface MainApi {
   setDisguised(on: boolean): Promise<void>
   /** 오늘의 낚시 상태 (트레이에 보여 줌) */
   setStatus(text: string): Promise<void>
-  saveImage(dataUrl: string, name: string): Promise<'saved' | 'copied' | 'cancel'>
+  /** 이미지 저장 (저장 대화상자) */
+  saveImage(dataUrl: string, name: string): Promise<'saved' | 'cancel'>
+  /** 공유: 맥은 공유 메뉴(+클립보드), 윈도우는 클립보드에 복사. at = 창 안 좌표 (메뉴 위치) */
+  shareImage(dataUrl: string, name: string, at?: { x: number; y: number }): Promise<'menu' | 'copied' | 'fail'>
+  requestShare(req: ShareRequest): Promise<void>
+  onShareRequest(cb: (req: ShareRequest) => void): () => void
+  takeShareRequest(): Promise<ShareRequest | null>
+  /** 투명 모양: 빈 곳 클릭은 뒤 창으로 */
+  setMouseThrough(on: boolean): Promise<void>
+  /** 투명 모양: 마우스가 낚시터 위에 있으면 창 안 좌표, 벗어나면 null */
+  onHover(cb: (p: { x: number; y: number } | null) => void): () => void
+  /** 단축키가 잘 걸렸는지 (다른 앱이 쓰고 있으면 false) */
+  shortcutStatus(): Promise<Record<ShortcutName, boolean>>
+  /** 설정에서 단축키를 고르는 동안 잠깐 끄기 */
+  suspendShortcuts(on: boolean): Promise<void>
+  // 스티커 메모
+  memoState(): Promise<MemoState>
+  onMemos(cb: (s: MemoState) => void): () => void
+  memoGet(id: string): Promise<Memo | null>
+  memoNew(): Promise<void>
+  memoText(id: string, text: string): void
+  memoPatch(id: string, patch: Partial<Pick<Memo, 'color' | 'pinned'>>): Promise<void>
+  memoHide(id: string): Promise<void>
+  memoTrash(id: string): Promise<void>
+  memoRestore(id: string): Promise<void>
+  memoPurge(id: string): Promise<void>
+  memoEmptyTrash(): Promise<void>
+  memoFocus(id: string): Promise<void>
+  memoShowAll(): Promise<void>
+  setBossNote(text: string): void
   openExternal(url: string): Promise<void>
   getVersion(): Promise<string>
   checkUpdate(): Promise<string>

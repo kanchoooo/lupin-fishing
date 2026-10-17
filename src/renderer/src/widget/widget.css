@@ -314,99 +314,104 @@
   pointer-events: none;
 }
 
-/* 위장: 평범한 표 계산 프로그램처럼 (상표 없음) */
-.sheet {
+/* 위장: 평범한 스티커 메모 (게임 글꼴·색 안 씀) */
+.sticky {
+  --bg: #fff6b3;
+  --head: #f6e98a;
+  --ink: #3b3622;
   position: absolute;
   inset: 0;
-  background: #ffffff;
-  color: #222;
-  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
-  font-size: calc(5.5px * var(--s));
-  -webkit-font-smoothing: auto;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  cursor: default;
-  z-index: 10;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  font-size: calc(6.5px * var(--s));
+  -webkit-font-smoothing: auto;
+  cursor: auto;
+  user-select: text;
 }
-.sh-title {
+.widget.s1 .sticky {
+  font-size: 11px;
+}
+.st-head {
   -webkit-app-region: drag;
-  height: calc(14px * var(--s));
+  flex: none;
+  height: calc(12px * var(--s));
   display: flex;
   align-items: center;
-  gap: calc(3px * var(--s));
-  padding: 0 calc(4px * var(--s));
-  background: #44546a;
-  color: #fff;
-  font-size: calc(5.5px * var(--s));
-}
-.sh-dot {
-  width: calc(5px * var(--s));
-  height: calc(5px * var(--s));
-  background: #fff;
-  opacity: 0.8;
-}
-.sh-fx {
-  display: flex;
-  gap: calc(4px * var(--s));
-  padding: calc(1px * var(--s)) calc(3px * var(--s));
-  border-bottom: 1px solid #d4d4d4;
-  color: #444;
-}
-.sh-cell {
-  min-width: calc(14px * var(--s));
-  border-right: 1px solid #d4d4d4;
-}
-.sh-f {
-  color: #888;
-  font-style: italic;
-}
-.sh-grid {
-  border-collapse: collapse;
-  width: 100%;
-  table-layout: fixed;
-  flex: 1;
-}
-.sh-grid th {
-  background: #f3f3f3;
-  color: #666;
-  font-weight: 400;
-  border: 1px solid #dcdcdc;
-  width: calc(10px * var(--s));
-}
-.sh-grid thead th:not(:first-child) {
-  width: auto;
-}
-.sh-grid td {
-  border: 1px solid #e3e3e3;
   padding: 0 calc(2px * var(--s));
-  white-space: nowrap;
-  overflow: hidden;
+  background: var(--head);
 }
-.sh-grid td.hd {
-  font-weight: 700;
-  background: #eef1f5;
-}
-.sh-grid td.num {
-  text-align: right;
-}
-.sh-grid td.sel {
-  outline: 2px solid #44546a;
-  outline-offset: -2px;
-}
-.sh-tabs {
+.st-b {
+  -webkit-app-region: no-drag;
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  opacity: 0.45;
+  width: calc(10px * var(--s));
+  height: calc(9px * var(--s));
+  border-radius: 4px;
   display: flex;
-  gap: calc(1px * var(--s));
-  padding: calc(1px * var(--s)) calc(3px * var(--s));
-  background: #f3f3f3;
-  border-top: 1px solid #d4d4d4;
-  color: #666;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
 }
-.sh-tabs span {
-  padding: 0 calc(4px * var(--s));
+.st-b:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.07);
 }
-.sh-tabs .on {
-  background: #fff;
-  color: #44546a;
-  font-weight: 700;
-  border-bottom: 2px solid #44546a;
+.st-text {
+  flex: 1;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  padding: calc(3px * var(--s)) calc(5px * var(--s));
+}
+.st-text::placeholder {
+  color: var(--ink);
+  opacity: 0.35;
+}
+.st-text::-webkit-scrollbar {
+  width: 6px;
+}
+.st-text::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+/* 투명 모양: 바탕 없이, 평소엔 흐리게 · 마우스를 올리거나 낚는 중엔 또렷하게 */
+.widget.clear {
+  background: transparent;
+  outline: none;
+}
+body.widget:has(.widget.clear) {
+  background: transparent;
+}
+.widget.clear .stage,
+.widget.clear .bar {
+  opacity: var(--op);
+  transition: opacity 0.2s steps(3);
+}
+.widget.clear.lit .stage,
+.widget.clear.lit .bar {
+  opacity: 1;
+}
+.widget.clear .bar {
+  background: rgba(0, 0, 0, 0.72);
+  border-bottom-color: transparent;
+  visibility: hidden;
+}
+.widget.clear.hover .bar {
+  visibility: visible;
+}
+.widget.clear .stage {
+  cursor: default;
 }

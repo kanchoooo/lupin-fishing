@@ -1,4 +1,5 @@
 import { shortKey } from '@shared/keys'
+import { accelLabel } from '@shared/shortcut'
 import type { PersistedState } from '@shared/types'
 import { INSTAGRAM_HANDLE, INSTAGRAM_URL, MORE_APPS_URL } from '@shared/types'
 import { SpriteBox } from '@/common/SpriteBox'
@@ -8,6 +9,8 @@ const platform = window.api.platform
 export function About({ st }: { st: PersistedState }): React.JSX.Element {
   const k = st.settings.reelKey ? shortKey(st.settings.reelKey, platform) : '클릭'
   const boss = st.settings.bossKey ? shortKey(st.settings.bossKey, platform) : null
+  const memoKey = st.settings.memoShortcut ? accelLabel(st.settings.memoShortcut, platform, true) : null
+  const lookKey = st.settings.lookShortcut ? accelLabel(st.settings.lookShortcut, platform, true) : null
   return (
     <div className="about">
       <section className="box intro">
@@ -54,10 +57,16 @@ export function About({ st }: { st: PersistedState }): React.JSX.Element {
           <li>
             <b>위장</b>: {boss ? <b>{boss}</b> : null}
             {boss ? ' · ' : ''}
-            <b>ESC</b> · 위쪽 ▤ 버튼 → 낚시터가 업무용 표로 변신. 두 번 클릭하면 돌아와요
+            <b>ESC</b> · 위쪽 ▤ 버튼 → 낚시터가 평범한 노란 스티커 메모로 변신. 진짜로 글도 써져요. 메모의 × 나 ESC 로 돌아와요
           </li>
           <li>
-            <b>낚시터 창 옮기기</b>: 빈 곳(하늘·위쪽 막대)을 잡고 끌기 · <b>치우기</b>: × (트레이·메뉴 막대의 찌 아이콘에서 다시)
+            <b>투명 모양</b>: 뒤 화면이 비치고 낚시꾼·찌·물고기만 보여요. 설정 · 위쪽 ◐ 버튼{lookKey ? <> · <b>{lookKey}</b></> : null} 로 원래 풍경 모양과 바꿔요
+          </li>
+          <li>
+            <b>스티커 메모</b>: {memoKey ? <><b>{memoKey}</b> 를 누르면 어디서든 새 메모. </> : null}화면에 여러 장 붙여 두고 색·맨 위 고정. 지운 메모는 메모 탭의 휴지통에서 되살려요
+          </li>
+          <li>
+            <b>낚시터 창 옮기기</b>: 물·낚시꾼·위쪽 막대를 잡고 끌기 · <b>치우기</b>: × (트레이·메뉴 막대의 찌 아이콘에서 다시)
           </li>
           <li>
             <b>오늘의 시세</b>: 매일 한 종이 판매가 ×2
@@ -66,7 +75,7 @@ export function About({ st }: { st: PersistedState }): React.JSX.Element {
             <b>직급</b>: 누적 수익으로 인턴 → 사원 → … → 전설의 월급루팡
           </li>
           <li>
-            <b>자랑하기</b>: 잡은 물고기 카드 · 오늘의 리포트 · 도감을 이미지로 (클립보드에 바로 복사)
+            <b>자랑하기</b>: 잡은 물고기 카드 · 오늘의 리포트 · 도감을 이미지로 먼저 보여 주고 → 공유하기 · 이미지 저장
           </li>
         </ul>
       </section>

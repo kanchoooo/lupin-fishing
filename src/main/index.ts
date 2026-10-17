@@ -1,13 +1,15 @@
-import { app, BrowserWindow, clipboard, ClipboardItem, dialog, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } from 'electron'
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, globalShortcut, ipcMain, Menu, nativeImage, Notification, screen, ShareMenu, shell, Tray } from 'electron'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { dayKey, fmtWon } from '@shared/day'
 import { globalCapable, MODIFIER_KEYS, MOUSE_KEYS } from '@shared/keys'
-import type { CatchInput, PanelTab, PersistedState, Settings } from '@shared/types'
+import { accelLabel } from '@shared/shortcut'
+import type { CatchInput, MemoState, PanelTab, PersistedState, Settings, ShareRequest, ShortcutName } from '@shared/types'
 import { BAR_H, INSTAGRAM_URL, MORE_APPS_URL, SCENE_H, SCENE_W } from '@shared/types'
 import { env, isHeadless, loadRenderer, preloadPath } from './env'
 import { trayIcon } from './icons'
 import { createKeyReader, macAccess, requestMacAccess, type KeyReader } from './keys'
+import { Memos } from './memos'
 import { Store } from './store'
 import { checkNow, setupUpdater } from './updater'
 
@@ -26,6 +28,7 @@ let widget: BrowserWindow | null = null
 let panel: BrowserWindow | null = null
 let tray: Tray | null = null
 let store: Store
+let memos: Memos
 let quitting = false
 let disguised = false
 let status = ''
@@ -74,12 +77,14 @@ function createWidget(): void {
     fullscreenable: false,
     // 작업 표시줄에는 안 보이고 트레이에서 다시 연다
     skipTaskbar: true,
-    hasShadow: true,
+    // 투명 모양: 창 바탕을 비워 두고 낚시꾼·찌·물고기만 그린다 (풍경 모양은 화면이 까맣게 채운다)
+    transparent: true,
+    hasShadow: store.state.settings.look === 'scene',
     // 맥: 다른 앱을 쓰다가 눌러도 첫 클릭부터 낚시가 되게
     acceptFirstMouse: true,
     show: false,
     title: '월급루팡 낚시터',
-    backgroundColor: '#000000',
+    backgroundColor: '#00000000',
     webPreferences: {
       preload: preloadPath(),
       sandbox: true,
@@ -98,8 +103,14 @@ function createWidget(): void {
     const [x, y] = win.getPosition()
     store.setWidgetPos(x, y)
   })
-  win.on('show', updatePolling)
-  win.on('hide', updatePolling)
+  win.on('show', () => {
+    updatePolling()
+    updateHover()
+  })
+  win.on('hide', () => {
+    updatePolling()
+    updateHover()
+  })
   win.on('close', (e) => {
     if (quitting) return
     e.preventDefault()
@@ -203,10 +214,18 @@ function buildTrayMenu(): void {
     { type: 'separator' },
     { label: '수동 낚시 (손맛)', type: 'radio', checked: s.mode === 'manual', click: () => store.setSettings({ mode: 'manual' }) },
     { label: '자동 낚시 (성공률 낮음)', type: 'radio', checked: s.mode === 'auto', click: () => store.setSettings({ mode: 'auto' }) },
-    { label: disguised ? '위장 풀기' : '일하는 척 위장하기', click: () => widget?.webContents.send('boss') },
+    { label: disguised ? '위장 풀기' : '일하는 척 위장하기 (메모로 변신)', click: () => widget?.webContents.send('boss') },
+    {
+      label: `${s.look === 'clear' ? '풍경 모양으로' : '투명 모양으로'}${s.lookShortcut ? `  ${accelLabel(s.lookShortcut, process.platform)}` : ''}`,
+      click: () => toggleLook()
+    },
+    { type: 'separator' },
+    { label: `새 스티커 메모${s.memoShortcut ? `  ${accelLabel(s.memoShortcut, process.platform)}` : ''}`, click: () => memos.create() },
+    { label: '메모 모두 보기', click: () => memos.showAll() },
     { type: 'separator' },
     { label: '물고기 도감', click: () => showPanel('dex') },
     { label: '수익 기록', click: () => showPanel('money') },
+    { label: '메모 · 휴지통', click: () => showPanel('memo') },
     { label: '설정', click: () => showPanel('settings') },
     { type: 'separator' },
     { label: '개발자의 다른 앱 보기', click: () => void shell.openExternal(MORE_APPS_URL) },
@@ -339,6 +358,104 @@ function dragEnd(): void {
   store.setWidgetPos(p.x, p.y)
 }
 
+// ───────── 투명 모양: 마우스 위치 알려 주기 · 빈 곳 클릭은 뒤 창으로 ─────────
+
+let hoverTimer: NodeJS.Timeout | null = null
+let hoverKey = ''
+let mouseThrough = false
+
+function setMouseThrough(on: boolean): void {
+  if (!widget || widget.isDestroyed() || on === mouseThrough) return
+  mouseThrough = on
+  widget.setIgnoreMouseEvents(on, { forward: true })
+  if (env.LUPIN_LOG === '1') console.log('[widget] mouse-through', on)
+}
+
+function updateHover(): void {
+  const want = !headless && store.state.settings.look === 'clear' && !!widget && !widget.isDestroyed() && widget.isVisible()
+  if (want && !hoverTimer) {
+    hoverTimer = setInterval(() => {
+      if (!widget || widget.isDestroyed()) return
+      const c = screen.getCursorScreenPoint()
+      const b = widget.getBounds()
+      const inside = c.x >= b.x && c.x < b.x + b.width && c.y >= b.y && c.y < b.y + b.height
+      const key = inside ? `${c.x - b.x},${c.y - b.y}` : 'out'
+      if (key === hoverKey) return
+      if (env.LUPIN_LOG === '1' && (key === 'out') !== (hoverKey === 'out')) console.log('[widget] hover', key, JSON.stringify(b))
+      hoverKey = key
+      widget.webContents.send('widget:hover', inside ? { x: c.x - b.x, y: c.y - b.y } : null)
+    }, 33)
+  }
+  if (!want && hoverTimer) {
+    clearInterval(hoverTimer)
+    hoverTimer = null
+    hoverKey = ''
+    setMouseThrough(false)
+    widget?.webContents.send('widget:hover', null)
+  }
+}
+
+function toggleLook(): void {
+  store.setSettings({ look: store.state.settings.look === 'clear' ? 'scene' : 'clear' })
+}
+
+// ───────── 단축키 (조합 키 · 다른 앱 쓰는 중에도) ─────────
+
+const shortcutOk: Record<ShortcutName, boolean> = { look: true, memo: true }
+let shortcutsSuspended = false
+
+function registerShortcuts(): void {
+  globalShortcut.unregisterAll()
+  shortcutOk.look = true
+  shortcutOk.memo = true
+  if (shortcutsSuspended || headless) return
+  const s = store.state.settings
+  const list: [ShortcutName, string | null, () => void][] = [
+    ['look', s.lookShortcut, toggleLook],
+    ['memo', s.memoShortcut, () => void memos.create()]
+  ]
+  for (const [name, acc, fn] of list) {
+    if (!acc) continue
+    try {
+      shortcutOk[name] = globalShortcut.register(acc, fn)
+    } catch (err) {
+      console.warn('[shortcut]', acc, (err as Error)?.message ?? err)
+      shortcutOk[name] = false
+    }
+  }
+}
+
+// ───────── 자랑 이미지: 미리 보기는 패널에서 ─────────
+
+let pendingShare: ShareRequest | null = null
+
+function requestShare(req: ShareRequest): void {
+  if (!req || typeof req.id !== 'string') return
+  pendingShare = req
+  const fresh = !panel || panel.isDestroyed()
+  showPanel()
+  // 이미 떠 있는 패널이면 바로 알리고, 새로 만드는 중이면 패널이 다 뜬 뒤 가져간다
+  if (!fresh && panel && !panel.webContents.isLoading()) {
+    panel.webContents.send('share:request', req)
+    pendingShare = null
+  }
+}
+
+async function copyImage(png: Buffer): Promise<boolean> {
+  try {
+    await clipboard.write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }) })])
+    return true
+  } catch (err) {
+    console.warn('[clipboard]', err)
+    return false
+  }
+}
+
+function pngOf(dataUrl: unknown): Buffer | null {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/png;base64,')) return null
+  return nativeImage.createFromDataURL(dataUrl).toPNG()
+}
+
 // ───────── IPC ─────────
 
 function safeName(name: unknown, fallback: string): string {
@@ -386,11 +503,8 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('app:saveImage', async (_e, dataUrl: string, name?: string) => {
-    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/png;base64,')) return 'cancel'
-    const png = nativeImage.createFromDataURL(dataUrl).toPNG()
-    await clipboard
-      .write([new ClipboardItem({ 'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }) })])
-      .catch((err) => console.warn('[clipboard]', err))
+    const png = pngOf(dataUrl)
+    if (!png) return 'cancel'
     const fname = `${safeName(name, '월급루팡-낚시터')}.png`
     if (env.LUPIN_SAVE_DIR) {
       mkdirSync(env.LUPIN_SAVE_DIR, { recursive: true })
@@ -398,11 +512,39 @@ function registerIpc(): void {
       return 'saved'
     }
     const parent = panel && !panel.isDestroyed() && panel.isVisible() ? panel : undefined
-    const opts = { defaultPath: join(app.getPath('desktop'), fname), filters: [{ name: 'PNG 이미지', extensions: ['png'] }] }
+    const opts = { defaultPath: join(app.getPath('downloads'), fname), filters: [{ name: 'PNG 이미지', extensions: ['png'] }] }
     const r = parent ? await dialog.showSaveDialog(parent, opts) : await dialog.showSaveDialog(opts)
-    if (r.canceled || !r.filePath) return 'copied'
+    if (r.canceled || !r.filePath) return 'cancel'
     writeFileSync(r.filePath, png)
     return 'saved'
+  })
+  ipcMain.handle('app:shareImage', async (_e, dataUrl: string, name?: string, at?: { x: number; y: number }) => {
+    const png = pngOf(dataUrl)
+    if (!png) return 'fail'
+    const copied = await copyImage(png)
+    // 맥: 메시지 · 에어드롭 · 메모 · 카카오톡 같은 공유 메뉴 (윈도우는 클립보드에 복사 → 붙여넣기)
+    if (isMac && !headless && panel && !panel.isDestroyed()) {
+      const dir = join(app.getPath('temp'), 'lupin-share')
+      mkdirSync(dir, { recursive: true })
+      const file = join(dir, `${safeName(name, '월급루팡-낚시터')}.png`)
+      writeFileSync(file, png)
+      const pos = at && Number.isFinite(at.x) && Number.isFinite(at.y) ? { x: Math.round(at.x), y: Math.round(at.y) } : {}
+      new ShareMenu({ filePaths: [file] }).popup({ window: panel, ...pos })
+      return 'menu'
+    }
+    return copied ? 'copied' : 'fail'
+  })
+  ipcMain.handle('share:request', (_e, req: ShareRequest) => requestShare(req))
+  ipcMain.handle('share:take', () => {
+    const r = pendingShare
+    pendingShare = null
+    return r
+  })
+  ipcMain.handle('widget:mouseThrough', (_e, on: boolean) => setMouseThrough(!!on && store.state.settings.look === 'clear'))
+  ipcMain.handle('shortcuts:status', () => ({ ...shortcutOk }))
+  ipcMain.handle('shortcuts:suspend', (_e, on: boolean) => {
+    shortcutsSuspended = !!on
+    registerShortcuts()
   })
   ipcMain.handle('app:openExternal', (_e, url: string) => {
     if (typeof url === 'string' && /^https:\/\//.test(url)) void shell.openExternal(url)
@@ -413,6 +555,10 @@ function registerIpc(): void {
     quitting = true
     app.quit()
   })
+}
+
+function onMemosChanged(s: MemoState): void {
+  if (panel && !panel.isDestroyed()) panel.webContents.send('memo:changed', s)
 }
 
 function onStateChanged(prev: Settings, s: PersistedState): void {
@@ -430,7 +576,13 @@ function onStateChanged(prev: Settings, s: PersistedState): void {
       store.setWidgetPos(p.x, p.y)
     }
     if (n.alwaysOnTop !== prev.alwaysOnTop) applyOnTop(widget)
+    if (n.look !== prev.look) {
+      widget.setHasShadow(n.look === 'scene')
+      setMouseThrough(false)
+      updateHover()
+    }
   }
+  if (n.lookShortcut !== prev.lookShortcut || n.memoShortcut !== prev.memoShortcut) registerShortcuts()
   if (n.globalKeys !== prev.globalKeys || n.reelKey !== prev.reelKey || n.bossKey !== prev.bossKey) {
     held = new Set()
     updatePolling()
@@ -448,6 +600,11 @@ interface Step {
   openPanel?: PanelTab
   shot?: string
   panelShot?: string
+  /** 새 메모를 만든다 */
+  newMemo?: boolean
+  /** 마지막으로 연 메모 창에서 실행 / 캡처 */
+  memo?: string
+  memoShot?: string
   quit?: boolean
 }
 
@@ -490,6 +647,20 @@ function runScript(): void {
           const img = await grab(panel)
           writeFileSync(join(dir, st.panelShot + '.png'), img.toPNG())
           console.log('[shot]', st.panelShot)
+        }
+        if (st.newMemo) memos.create()
+        const memoWin = (): BrowserWindow | undefined =>
+          BrowserWindow.getAllWindows()
+            .filter((w) => !w.isDestroyed() && w.webContents.getURL().includes('memo.html'))
+            .sort((a, b) => b.id - a.id)[0]
+        if (st.memo) console.log('[memo-js]', await memoWin()?.webContents.executeJavaScript(st.memo))
+        if (st.memoShot) {
+          const w = memoWin()
+          if (w) {
+            const img = await grab(w)
+            writeFileSync(join(dir, st.memoShot + '.png'), img.toPNG())
+            console.log('[shot]', st.memoShot)
+          }
         }
         if (st.quit) {
           quitting = true
@@ -546,6 +717,8 @@ app.whenReady().then(() => {
   // 맥: 독 아이콘 없이 메뉴 막대에 상주 (패널을 열 때만 독에 보인다) — 전체 화면 앱 위에도 낚시터가 뜨게
   if (isMac && !headless) app.dock?.hide()
   registerIpc()
+  memos = new Memos(onMemosChanged)
+  memos.registerIpc()
   let prev = store.state.settings
   store.onChange((s) => {
     onStateChanged(prev, s)
@@ -554,6 +727,9 @@ app.whenReady().then(() => {
   createWidget()
   if (!headless) createTray()
   updatePolling()
+  updateHover()
+  registerShortcuts()
+  memos.openAll()
   // 자정이 지나면 트레이의 '오늘 수익'을 다시 계산
   setInterval(buildTrayMenu, 60_000)
   // 처음 실행: 사용법을 패널로 같이 보여 준다
@@ -574,7 +750,10 @@ app.whenReady().then(() => {
 app.on('before-quit', () => {
   quitting = true
   store?.flush()
+  memos?.flush()
 })
+
+app.on('will-quit', () => globalShortcut.unregisterAll())
 
 // 창을 모두 닫아도 트레이에 상주
 app.on('window-all-closed', () => {

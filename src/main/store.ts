@@ -5,6 +5,7 @@ import { dirname, join } from 'path'
 import { dayKey, rankOf, timeTag } from '@shared/day'
 import { FISH_BY_ID, hotFishOf, priceOf } from '@shared/fish'
 import { defaultKeys } from '@shared/keys'
+import { defaultShortcuts, validAccel } from '@shared/shortcut'
 import type { CatchInput, CatchResult, DayRecord, PersistedState, Settings } from '@shared/types'
 import { MIN_WAGE_2026 } from '@shared/day'
 
@@ -19,6 +20,9 @@ export function defaultSettings(): Settings {
     scale: 2,
     spot: 0.6,
     alwaysOnTop: true,
+    look: 'clear',
+    clearOpacity: 0.85,
+    ...defaultShortcuts(),
     sound: true,
     volume: 0.6,
     openAtLogin: false,
@@ -34,7 +38,28 @@ function fresh(): PersistedState {
     days: {},
     recent: [],
     widgetPos: null,
-    onboarded: false
+    onboarded: false,
+    priceVer: PRICE_VER
+  }
+}
+
+/** 0.2.0 에서 물고기 값을 10배 남짓 올리면서 직급 기준도 10배로 → 예전 기록도 10배로 맞춰 직급이 그대로이게 */
+const PRICE_VER = 2
+
+function migratePrices(st: PersistedState): PersistedState {
+  if ((st.priceVer ?? 1) >= PRICE_VER) return st
+  const x = (n: number): number => Math.round(n * 10)
+  const days: PersistedState['days'] = {}
+  for (const [k, d] of Object.entries(st.days)) days[k] = { ...d, earn: x(d.earn), ...(d.best ? { best: { ...d.best, price: x(d.best.price) } } : {}) }
+  const dex: PersistedState['dex'] = {}
+  for (const [k, e] of Object.entries(st.dex)) dex[k] = { ...e, bestPrice: x(e.bestPrice) }
+  return {
+    ...st,
+    days,
+    dex,
+    total: { ...st.total, earn: x(st.total.earn) },
+    recent: st.recent.map((r) => ({ ...r, price: x(r.price) })),
+    priceVer: PRICE_VER
   }
 }
 
@@ -57,15 +82,16 @@ export class Store {
     try {
       if (!existsSync(this.file)) return f
       const raw = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<PersistedState>
-      return {
+      return migratePrices({
         settings: clampSettings({ ...f.settings, ...(raw.settings ?? {}) }),
         dex: raw.dex && typeof raw.dex === 'object' ? raw.dex : {},
         total: { ...f.total, ...(raw.total ?? {}) },
         days: raw.days && typeof raw.days === 'object' ? raw.days : {},
         recent: Array.isArray(raw.recent) ? raw.recent.slice(0, 60) : [],
         widgetPos: raw.widgetPos && Number.isFinite(raw.widgetPos.x) && Number.isFinite(raw.widgetPos.y) ? raw.widgetPos : null,
-        onboarded: !!raw.onboarded
-      }
+        onboarded: !!raw.onboarded,
+        priceVer: num(raw.priceVer, 1)
+      })
     } catch (err) {
       console.error('[store] load failed, starting fresh', err)
       return f
@@ -196,6 +222,10 @@ function clampSettings(s: Settings): Settings {
     reelKey: typeof s.reelKey === 'string' && s.reelKey.length < 40 ? s.reelKey : null,
     bossKey: typeof s.bossKey === 'string' && s.bossKey.length < 40 ? s.bossKey : null,
     scale: [1, 2, 3].includes(s.scale) ? s.scale : 2,
+    look: s.look === 'scene' ? 'scene' : 'clear',
+    clearOpacity: Math.max(0.3, Math.min(1, num(s.clearOpacity, 0.85))),
+    lookShortcut: validAccel(s.lookShortcut) ? s.lookShortcut : null,
+    memoShortcut: validAccel(s.memoShortcut) ? s.memoShortcut : null,
     spot: Math.max(0, Math.min(1, num(s.spot, 0.6))),
     volume: Math.max(0, Math.min(1, num(s.volume, 0.6))),
     hourlyWage: Math.max(0, Math.min(10_000_000, Math.round(num(s.hourlyWage, MIN_WAGE_2026))))

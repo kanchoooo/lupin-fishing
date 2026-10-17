@@ -1,4 +1,6 @@
 // 낚시터 그리기 (176×96 도트). 검은 밤 · 회사 빌딩 · 연못 · 사무용 의자에 앉은 월급루팡
+// 투명 모양은 하늘·빌딩·물을 빼고 낚시꾼·찌·물고기만, 어떤 바탕에서도 보이게 까만 테두리를 둘러 그린다
+import type { Look } from '@shared/types'
 import { SCENE_H, SCENE_W } from '@shared/types'
 import { drawSprite, paintRows, spriteSize } from '@/art/draw'
 import { Game, HAND, WATER_Y } from './game'
@@ -158,7 +160,7 @@ function drawWater(c: CanvasRenderingContext2D, g: Game): void {
   }
 }
 
-function drawPier(c: CanvasRenderingContext2D): void {
+function drawPier(c: CanvasRenderingContext2D, clear = false): void {
   // 나무 데크
   c.fillStyle = '#7a7a7a'
   c.fillRect(0, 51, 34, 1)
@@ -166,9 +168,9 @@ function drawPier(c: CanvasRenderingContext2D): void {
   c.fillRect(0, 52, 34, 2)
   c.fillStyle = '#7a7a7a'
   for (let x = 2; x < 34; x += 6) c.fillRect(x, 52, 1, 2)
-  // 기둥
+  // 기둥 (투명 모양은 물에 살짝 잠기는 데까지만)
   c.fillStyle = '#4a4a4a'
-  for (const x of [4, 18, 31]) c.fillRect(x, 54, 2, H - 54)
+  for (const x of [4, 18, 31]) c.fillRect(x, 54, 2, clear ? WATER_Y + 3 - 54 : H - 54)
 }
 
 function drawAngler(c: CanvasRenderingContext2D, g: Game): void {
@@ -285,13 +287,14 @@ function drawLine(c: CanvasRenderingContext2D, g: Game, tip: { x: number; y: num
   }
 }
 
-function drawFish(c: CanvasRenderingContext2D, g: Game): void {
+function drawFish(c: CanvasRenderingContext2D, g: Game, clear: boolean): void {
   const f = g.fish
   if (!f) return
   const { w, h } = spriteSize(f.id)
   if (g.phase === 'fight') {
-    // 물속 그림자 (머리가 낚시꾼 쪽)
-    drawSprite(c, f.id, g.fishX - 2, g.fishY - h / 2 + 3, 1, { silhouette: g.rush > 0 ? '#4a4a4a' : '#2e2e2e' })
+    // 물속 그림자 (머리가 낚시꾼 쪽). 투명 모양은 바탕이 밝을 수도 있어 밝은 회색
+    const sil = clear ? (g.rush > 0 ? '#c8c8c8' : '#8a8a8a') : g.rush > 0 ? '#4a4a4a' : '#2e2e2e'
+    drawSprite(c, f.id, g.fishX - 2, g.fishY - h / 2 + 3, 1, { silhouette: sil })
   } else if (g.phase === 'finish') {
     const jump = WATER_Y - h - 6 - Math.abs(Math.sin(g.pt * 3.2)) * 10
     drawSprite(c, f.id, g.fishX - 2, jump, 1)
@@ -391,7 +394,83 @@ function drawChargeHud(c: CanvasRenderingContext2D, g: Game): void {
   c.fillRect(x, y + 16 - f, 2, f)
 }
 
-export function renderScene(c: CanvasRenderingContext2D, g: Game): void {
+/** 투명 모양의 물: 물가 선 하나 + 느린 물결 한 줄 */
+function drawWaterClear(c: CanvasRenderingContext2D, g: Game): void {
+  const off = Math.floor(g.time * 3) % 6
+  c.fillStyle = '#8a8a8a'
+  for (let x = 30 - 6 + off; x < W; x += 6) if (x >= 30) c.fillRect(x, WATER_Y, 4, 1)
+  c.fillStyle = '#4a4a4a'
+  const off2 = (g.time * 5) % 24
+  for (let x = 24 + off2; x < W; x += 24) c.fillRect(Math.round(x), WATER_Y + 6, 3, 1)
+}
+
+/** 낚시꾼부터 위쪽 표시까지 (두 모양이 같이 쓴다) */
+function drawForeground(c: CanvasRenderingContext2D, g: Game, clear: boolean): void {
+  for (const r of g.ripples) {
+    const col = r.life > 0.6 ? '#7a7a7a' : '#3a3a3a'
+    c.fillStyle = col
+    const rx = Math.round(r.r)
+    c.fillRect(Math.round(r.x - rx), WATER_Y + 1, Math.max(1, Math.round(rx / 2)), 1)
+    c.fillRect(Math.round(r.x + rx / 2), WATER_Y + 1, Math.max(1, Math.round(rx / 2)), 1)
+  }
+  drawPier(c, clear)
+  if (g.phase === 'idle' || g.phase === 'charge' || g.dragging === 'spot') drawSpot(c, g)
+  drawAngler(c, g)
+  drawFish(c, g, clear)
+  const tip = drawRod(c, g)
+  drawLine(c, g, tip)
+  for (const p of g.particles) px(c, p.x, p.y, p.color)
+  if (g.phase === 'charge') drawChargeHud(c, g)
+  if (g.phase === 'fight') drawFightHud(c, g)
+  if (g.phase === 'finish') drawFinishHud(c, g)
+}
+
+let layer: CanvasRenderingContext2D | null = null
+let mask: CanvasRenderingContext2D | null = null
+
+function offscreen(): CanvasRenderingContext2D {
+  const cv = document.createElement('canvas')
+  cv.width = W
+  cv.height = H
+  const c = cv.getContext('2d')!
+  c.imageSmoothingEnabled = false
+  return c
+}
+
+function renderClear(c: CanvasRenderingContext2D, g: Game): void {
+  layer ??= offscreen()
+  mask ??= offscreen()
+  const l = layer
+  l.clearRect(0, 0, W, H)
+  l.save()
+  if (g.shake > 0) l.translate(Math.round((Math.random() - 0.5) * g.shake * 2), Math.round((Math.random() - 0.5) * g.shake))
+  drawWaterClear(l, g)
+  drawForeground(l, g, true)
+  l.restore()
+  // 그린 모양 그대로 까만 테두리 (밝은 바탕에서도 보이게)
+  const m = mask
+  m.globalCompositeOperation = 'copy'
+  m.drawImage(l.canvas, 0, 0)
+  m.globalCompositeOperation = 'source-in'
+  m.fillStyle = 'rgba(0,0,0,0.7)'
+  m.fillRect(0, 0, W, H)
+  m.globalCompositeOperation = 'source-over'
+  c.save()
+  c.imageSmoothingEnabled = false
+  c.clearRect(0, 0, W, H)
+  for (const [dx, dy] of [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
+  ])
+    c.drawImage(m.canvas, dx, dy)
+  c.drawImage(l.canvas, 0, 0)
+  c.restore()
+}
+
+export function renderScene(c: CanvasRenderingContext2D, g: Game, look: Look = 'scene'): void {
+  if (look === 'clear') return renderClear(c, g)
   c.save()
   c.imageSmoothingEnabled = false
   c.fillStyle = '#000'
@@ -400,23 +479,7 @@ export function renderScene(c: CanvasRenderingContext2D, g: Game): void {
   drawSky(c, g)
   drawCity(c, g)
   drawWater(c, g)
-  for (const r of g.ripples) {
-    const col = r.life > 0.6 ? '#7a7a7a' : '#3a3a3a'
-    c.fillStyle = col
-    const rx = Math.round(r.r)
-    c.fillRect(Math.round(r.x - rx), WATER_Y + 1, Math.max(1, Math.round(rx / 2)), 1)
-    c.fillRect(Math.round(r.x + rx / 2), WATER_Y + 1, Math.max(1, Math.round(rx / 2)), 1)
-  }
-  drawPier(c)
-  if (g.phase === 'idle' || g.phase === 'charge' || g.dragging === 'spot') drawSpot(c, g)
-  drawAngler(c, g)
-  drawFish(c, g)
-  const tip = drawRod(c, g)
-  drawLine(c, g, tip)
-  for (const p of g.particles) px(c, p.x, p.y, p.color)
-  if (g.phase === 'charge') drawChargeHud(c, g)
-  if (g.phase === 'fight') drawFightHud(c, g)
-  if (g.phase === 'finish') drawFinishHud(c, g)
+  drawForeground(c, g, false)
   c.restore()
   if (g.flash > 0) {
     c.fillStyle = `rgba(255,255,255,${g.flash * 0.22})`

@@ -44,16 +44,16 @@ export interface Rank {
 /** 누적 수익으로 오르는 직급 */
 export const RANKS: Rank[] = [
   { name: '인턴', min: 0 },
-  { name: '사원', min: 5_000 },
-  { name: '주임', min: 30_000 },
-  { name: '대리', min: 100_000 },
-  { name: '과장', min: 300_000 },
-  { name: '차장', min: 700_000 },
-  { name: '부장', min: 1_500_000 },
-  { name: '이사', min: 3_000_000 },
-  { name: '사장', min: 6_000_000 },
-  { name: '회장', min: 12_000_000 },
-  { name: '전설의 월급루팡', min: 30_000_000 }
+  { name: '사원', min: 50_000 },
+  { name: '주임', min: 300_000 },
+  { name: '대리', min: 1_000_000 },
+  { name: '과장', min: 3_000_000 },
+  { name: '차장', min: 7_000_000 },
+  { name: '부장', min: 15_000_000 },
+  { name: '이사', min: 30_000_000 },
+  { name: '사장', min: 60_000_000 },
+  { name: '회장', min: 120_000_000 },
+  { name: '전설의 월급루팡', min: 300_000_000 }
 ]
 
 export function rankOf(total: number): { rank: Rank; next: Rank | null; progress: number; index: number } {

@@ -1,4 +1,4 @@
-// 자랑 이미지 (1080×1350, 인스타 세로) — 저장하면서 클립보드에도 복사된다
+// 자랑 이미지 (1080×1350, 인스타 세로) — 패널에서 먼저 보여 주고 공유하기 · 이미지 저장
 import { dayKey, fmtDay, fmtTime, fmtWon, rankTitle, wageTime } from '@shared/day'
 import { FISH, FISH_BY_ID, fmtSize, RARITY } from '@shared/fish'
 import type { CatchRecord, PersistedState } from '@shared/types'
@@ -175,9 +175,13 @@ export async function makeDexCard(st: PersistedState): Promise<string> {
   const known = FISH.filter((f) => st.dex[f.id]).length
   text(c, '월급루팡 물고기 도감', W / 2, 130, { size: 60, bold: true })
   text(c, `${known} / ${FISH.length} 종 · 누적 ${fmtWon(st.total.earn)}`, W / 2, 190, { size: 36, color: '#ffd23f' })
-  const cols = 5
-  const cw = 190
-  const ch = 150
+  // 물고기 수에 맞춰 칸 크기를 정한다 (위 제목 ~ 아래 꼬리말 사이에 다 들어가게)
+  const n = FISH.length
+  const cols = n <= 30 ? 5 : n <= 42 ? 6 : 7
+  const rows = Math.ceil(n / cols)
+  const cw = Math.min(190, Math.floor((W - 100) / cols))
+  const ch = Math.min(150, Math.floor((H - 170 - 230) / rows))
+  const nameSize = ch < 120 ? 20 : 24
   const x0 = (W - cols * cw) / 2
   const y0 = 230
   FISH.forEach((f, i) => {
@@ -185,9 +189,9 @@ export async function makeDexCard(st: PersistedState): Promise<string> {
     const x = x0 + (i % cols) * cw
     const y = y0 + Math.floor(i / cols) * ch
     c.fillStyle = e ? RARITY[f.rarity].color : '#2a2a2a'
-    c.fillRect(x + 8, y + 8, cw - 16, 3)
-    spriteIn(c, f.id, x + cw / 2, y + 64, cw - 36, 84, e ? undefined : '#2a2a2a')
-    text(c, e ? f.name : '???', x + cw / 2, y + 134, { size: 24, color: e ? '#ececec' : '#5f5f5f', max: cw - 16 })
+    c.fillRect(x + 8, y + 6, cw - 16, 3)
+    spriteIn(c, f.id, x + cw / 2, y + (ch - 26) / 2 + 4, cw - 30, ch - 46, e ? undefined : '#2a2a2a')
+    text(c, e ? f.name : '???', x + cw / 2, y + ch - 12, { size: nameSize, color: e ? '#ececec' : '#5f5f5f', max: cw - 12 })
   })
   footer(c, st.total.earn)
   return c.canvas.toDataURL('image/png')

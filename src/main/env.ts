@@ -23,7 +23,7 @@ export function preloadPath(): string {
   return join(__dirname, '../preload/index.js')
 }
 
-export function loadRenderer(win: BrowserWindow, page: 'widget' | 'panel' | 'lab', hash?: string): void {
+export function loadRenderer(win: BrowserWindow, page: 'widget' | 'panel' | 'memo' | 'lab', hash?: string): void {
   const devUrl = env.ELECTRON_RENDERER_URL
   if (devUrl) {
     void win.loadURL(`${devUrl}/${page}.html${hash ? '#' + hash : ''}`)
