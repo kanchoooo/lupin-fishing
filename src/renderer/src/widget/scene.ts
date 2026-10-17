@@ -303,6 +303,23 @@ function drawFish(c: CanvasRenderingContext2D, g: Game): void {
   }
 }
 
+/** 낚시 자리 표시: 물 위 ▼ + 물결 점. 끌어서 옮긴다 */
+function drawSpot(c: CanvasRenderingContext2D, g: Game): void {
+  const x = Math.round(g.spotX)
+  const on = g.dragging === 'spot'
+  const bob = Math.round(Math.sin(g.time * 3) * 1)
+  const col = on ? '#ffd23f' : '#8a7a3a'
+  c.fillStyle = col
+  const y = WATER_Y - 8 + (on ? 0 : bob)
+  c.fillRect(x - 2, y, 5, 1)
+  c.fillRect(x - 1, y + 1, 3, 1)
+  c.fillRect(x, y + 2, 1, 1)
+  // 물 위 점선 고리
+  c.fillStyle = on ? '#ffd23f' : '#5a5a5a'
+  for (const dx of [-6, -4, 4, 6]) c.fillRect(x + dx, WATER_Y + 1, 1, 1)
+  c.fillRect(x - 2, WATER_Y + 2, 5, 1)
+}
+
 function drawFightHud(c: CanvasRenderingContext2D, g: Game): void {
   // 장력 (오른쪽 세로 막대): 초록 = 좋음, 노랑, 빨강 = 끊어지기 직전
   const x = 168
@@ -391,6 +408,7 @@ export function renderScene(c: CanvasRenderingContext2D, g: Game): void {
     c.fillRect(Math.round(r.x + rx / 2), WATER_Y + 1, Math.max(1, Math.round(rx / 2)), 1)
   }
   drawPier(c)
+  if (g.phase === 'idle' || g.phase === 'charge' || g.dragging === 'spot') drawSpot(c, g)
   drawAngler(c, g)
   drawFish(c, g)
   const tip = drawRod(c, g)

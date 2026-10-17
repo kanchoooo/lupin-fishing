@@ -10,8 +10,8 @@ export const WATER_Y = 58
 /** 낚싯대를 쥔 손 (장면 좌표) */
 export const HAND = { x: 20, y: 40 }
 export const ROD_LEN = 36
-const NEAR_X = 64
-const FAR_X = 168
+export const NEAR_X = 64
+export const FAR_X = 166
 
 export interface Particle {
   x: number
@@ -73,6 +73,10 @@ export class Game {
   auto = false
 
   power = 0
+  /** 낚시 자리 (0 = 물가 · 1 = 가장 멀리). 물 위 ▼ 표시를 끌어서 옮긴다 */
+  spot = 0.6
+  /** 낚시 자리·찌를 끄는 중 (그림 강조용) */
+  dragging: 'spot' | 'bobber' | null = null
   bob = { x: 120, y: WATER_Y }
   castFrom = { x: 0, y: 0 }
   castTo = 120
@@ -192,9 +196,32 @@ export class Game {
 
   // ───────── 단계 진행 ─────────
 
+  get spotX(): number {
+    return NEAR_X + (FAR_X - NEAR_X) * this.spot
+  }
+
+  setSpot(v: number): void {
+    this.spot = Math.max(0, Math.min(1, v))
+  }
+
+  /** 기다리는 중에 찌를 끌어서 다른 자리로: 물고기가 놀라 조금 더 기다린다 */
+  moveBobber(x: number): void {
+    if (this.phase !== 'wait') return
+    const nx = Math.max(NEAR_X, Math.min(FAR_X, x))
+    if (Math.abs(nx - this.bob.x) < 0.5) return
+    this.bob.x = nx
+    this.castTo = nx
+    this.setSpot((nx - NEAR_X) / (FAR_X - NEAR_X))
+    this.waitLeft = Math.max(this.waitLeft, 1.2) + 0.02
+    this.nibbles = this.nibbles.filter((t) => t < this.waitLeft - 0.6)
+    if (Math.random() < 0.08) this.ripple(nx, WATER_Y, 1)
+  }
+
   private cast(power: number): void {
+    // 힘을 꽉 채울수록 낚시 자리에 정확히 떨어진다
     this.power = power
-    this.castTo = NEAR_X + (FAR_X - NEAR_X) * power + rand(-3, 3)
+    const miss = (1 - Math.min(1, power)) * 22
+    this.castTo = Math.max(NEAR_X, Math.min(FAR_X, this.spotX + rand(-1, 1) * miss + rand(-2, 2)))
     this.castFrom = this.rodTip()
     this.bob = { ...this.castFrom }
     this.fish = null
@@ -211,14 +238,19 @@ export class Game {
 
   private startWait(): void {
     // 멀리 던질수록 조금 더 오래 기다린다 (대신 희귀한 물고기가 조금 더)
-    this.waitLeft = rand(2.5, 8) * (1 + this.power * 0.35) * (this.mode === 'auto' ? 1.3 : 1)
+    this.waitLeft = rand(2.5, 8) * (1 + this.far() * 0.35) * (this.mode === 'auto' ? 1.3 : 1)
     const n = Math.floor(rand(0, 3.6))
     this.nibbles = Array.from({ length: n }, () => rand(0.6, Math.max(0.8, this.waitLeft - 0.5))).sort((a, b) => b - a)
     this.go('wait')
   }
 
+  /** 실제로 떨어진 자리가 얼마나 먼지 (0~1) — 멀수록 희귀한 물고기가 조금 더, 대신 오래 기다림 */
+  private far(): number {
+    return Math.max(0, Math.min(1, (this.castTo - NEAR_X) / (FAR_X - NEAR_X)))
+  }
+
   private bite(): void {
-    const fish = rollFish({ far: this.power })
+    const fish = rollFish({ far: this.far() })
     this.fish = fish
     this.size = rollSize(fish)
     this.biteWindow = RARITY[fish.rarity].biteWindow / 1000
@@ -380,7 +412,7 @@ export class Game {
     switch (this.phase) {
       case 'idle':
         this.dip = 0
-        if (auto && this.pt > 1.6) this.cast(rand(0.3, 0.95))
+        if (auto && this.pt > 1.6 && !this.dragging) this.cast(rand(0.75, 1))
         break
       case 'charge':
         // 0 → 1 → 0 왔다 갔다 (1.6초 주기)

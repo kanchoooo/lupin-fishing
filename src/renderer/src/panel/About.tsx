@@ -26,7 +26,10 @@ export function About({ st }: { st: PersistedState }): React.JSX.Element {
         <div className="sec-h">하는 법 (수동)</div>
         <ol>
           <li>
-            <b>{k} 꾹</b> → 떼면 던지기. 멀리 던질수록 희귀한 물고기가 조금 더 와요
+            <b>낚시 자리</b> — 물 위의 <span className="gold">▼</span> 를 끌어서 옮겨요. 멀리 잡을수록 희귀한 물고기가 조금 더 (대신 오래 기다려요). 기다리는 중엔 찌를 끌어 옮길 수도 있어요
+          </li>
+          <li>
+            <b>{k} 꾹</b> → 떼면 던지기. 힘을 꽉 채울수록 ▼ 자리에 정확히 떨어져요
           </li>
           <li>
             <b>① 입질</b> — 찌가 쑥 들어가고 <span className="gold">!</span> 가 뜨면 바로 <b>{k}</b>. 빠를수록 PERFECT
@@ -54,7 +57,7 @@ export function About({ st }: { st: PersistedState }): React.JSX.Element {
             <b>ESC</b> · 위쪽 ▤ 버튼 → 낚시터가 업무용 표로 변신. 두 번 클릭하면 돌아와요
           </li>
           <li>
-            <b>옮기기</b>: 낚시터 아무 데나 잡고 끌기 · <b>치우기</b>: × (트레이·메뉴 막대의 찌 아이콘에서 다시)
+            <b>낚시터 창 옮기기</b>: 빈 곳(하늘·위쪽 막대)을 잡고 끌기 · <b>치우기</b>: × (트레이·메뉴 막대의 찌 아이콘에서 다시)
           </li>
           <li>
             <b>오늘의 시세</b>: 매일 한 종이 판매가 ×2

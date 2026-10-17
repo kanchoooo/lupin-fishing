@@ -17,6 +17,7 @@ export function defaultSettings(): Settings {
     globalKeys: true,
     mouseClick: true,
     scale: 2,
+    spot: 0.6,
     alwaysOnTop: true,
     sound: true,
     volume: 0.6,
@@ -195,6 +196,7 @@ function clampSettings(s: Settings): Settings {
     reelKey: typeof s.reelKey === 'string' && s.reelKey.length < 40 ? s.reelKey : null,
     bossKey: typeof s.bossKey === 'string' && s.bossKey.length < 40 ? s.bossKey : null,
     scale: [1, 2, 3].includes(s.scale) ? s.scale : 2,
+    spot: Math.max(0, Math.min(1, num(s.spot, 0.6))),
     volume: Math.max(0, Math.min(1, num(s.volume, 0.6))),
     hourlyWage: Math.max(0, Math.min(10_000_000, Math.round(num(s.hourlyWage, MIN_WAGE_2026))))
   }

@@ -8,7 +8,7 @@ import { fitScale, spriteImage } from '@/art/draw'
 import { makeCatchCard } from '@/common/share'
 import { setMuted, setSound, sfx } from '@/common/sound'
 import { usePersisted, useMinute } from '@/common/store'
-import { Game, type Phase } from './game'
+import { FAR_X, Game, NEAR_X, WATER_Y, type Phase } from './game'
 import { renderScene } from './scene'
 import { Sheet } from './Sheet'
 
@@ -68,6 +68,7 @@ export function Widget(): React.JSX.Element {
     if (!s) return
     game.setMode(s.mode)
     setSound(s.sound, s.volume)
+    if (!game.dragging) game.setSpot(s.spot)
   }, [game, s])
 
   useEffect(() => {
@@ -126,7 +127,21 @@ export function Widget(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game])
 
-  const down = useRef<{ x: number; y: number; pressed: boolean; deferred: boolean; dragging: boolean } | null>(null)
+  const down = useRef<{ x: number; y: number; pressed: boolean; deferred: boolean; dragging: boolean; grab?: 'spot' | 'bobber' } | null>(null)
+
+  /** 화면 좌표 → 장면 좌표 (도트 단위) */
+  const scenePos = (e: React.PointerEvent): { x: number; y: number } => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const sc = stRef.current?.settings.scale ?? 2
+    return { x: (e.clientX - r.left) / sc, y: (e.clientY - r.top) / sc }
+  }
+
+  /** 물 위 ▼(낚시 자리)나 기다리는 중의 찌를 잡았는지 */
+  const grabAt = (p: { x: number; y: number }): 'spot' | 'bobber' | null => {
+    if (game.phase === 'idle' && Math.abs(p.x - game.spotX) <= 9 && p.y >= WATER_Y - 13 && p.y <= WATER_Y + 8) return 'spot'
+    if (game.phase === 'wait' && Math.abs(p.x - game.bob.x) <= 8 && p.y >= WATER_Y - 11 && p.y <= WATER_Y + 6) return 'bobber'
+    return null
+  }
 
   const mouseCode = (b: number): string | null => (b === 1 ? 'Mouse3' : b === 3 ? 'Mouse4' : b === 4 ? 'Mouse5' : null)
 
@@ -142,7 +157,18 @@ export function Widget(): React.JSX.Element {
       return
     }
     if (e.button !== 0) return
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {
+      /* 합성 이벤트 등 */
+    }
+    // 낚시 자리 옮기기: ▼ 나 찌를 잡고 좌우로 끌기
+    const grab = grabAt(scenePos(e))
+    if (grab) {
+      down.current = { x: e.screenX, y: e.screenY, pressed: false, deferred: false, dragging: false, grab }
+      game.dragging = grab
+      return
+    }
     const mouse = stRef.current?.settings.mouseClick ?? true
     // 기다리는 중·결과 화면에서는 '끌기'일 수도 있으니 뗄 때 누른 걸로 친다
     const deferred = ['wait', 'result', 'fail', 'cast'].includes(game.phase)
@@ -155,7 +181,18 @@ export function Widget(): React.JSX.Element {
 
   const onPointerMove = (e: React.PointerEvent): void => {
     const d = down.current
-    if (!d || d.dragging) return
+    if (!d) {
+      // 잡을 수 있는 곳 위에서는 좌우 화살표 커서
+      ;(e.currentTarget as HTMLElement).style.cursor = grabAt(scenePos(e)) ? 'ew-resize' : ''
+      return
+    }
+    if (d.grab) {
+      const p = scenePos(e)
+      if (d.grab === 'spot') game.setSpot((p.x - NEAR_X) / (FAR_X - NEAR_X))
+      else game.moveBobber(p.x)
+      return
+    }
+    if (d.dragging) return
     if (Math.hypot(e.screenX - d.x, e.screenY - d.y) < 5) return
     if (!['idle', 'charge', 'wait', 'result', 'fail', 'cast'].includes(game.phase)) return
     // 낚시터를 끌어서 옮기기
@@ -173,6 +210,11 @@ export function Widget(): React.JSX.Element {
     const d = down.current
     down.current = null
     if (!d) return
+    if (d.grab) {
+      game.dragging = null
+      void window.api.setSettings({ spot: Math.round(game.spot * 1000) / 1000 })
+      return
+    }
     if (d.dragging) {
       void window.api.dragEnd()
       return
@@ -211,14 +253,14 @@ export function Widget(): React.JSX.Element {
         const hot = hotFishOf(day)
         const list =
           game.mode === 'auto'
-            ? ['자동 낚시 중 · 성공률 낮음', `입질(!) 때 ${k} 누르면 직접 잡기`, `오늘의 시세: ${hot.name} ×2`]
-            : [`${k} 꾹 → 떼면 던지기${viaWindow}`, '낚시터를 끌어서 옮길 수 있어요', `오늘의 시세: ${hot.name} ×2`, rankTitle(stRef.current?.total.earn ?? 0)]
+            ? ['자동 낚시 중 · 성공률 낮음', `입질(!) 때 ${k} 누르면 직접 잡기`, '물 위 ▼ 를 끌어 낚시 자리 옮기기', `오늘의 시세: ${hot.name} ×2`]
+            : [`${k} 꾹 → 떼면 던지기${viaWindow}`, '물 위 ▼ 를 끌어 낚시 자리 옮기기', '멀리 자리 잡을수록 희귀한 물고기', '빈 곳을 끌면 낚시터 창이 옮겨져요', `오늘의 시세: ${hot.name} ×2`, rankTitle(stRef.current?.total.earn ?? 0)]
         if (performance.now() - hintAt > 4200) {
           hintAt = performance.now()
           hintIdx++
         }
         hint = list[hintIdx % list.length]
-      } else if (p === 'charge') hint = '떼면 던져요 · 멀리 던질수록 희귀한 물고기'
+      } else if (p === 'charge') hint = '떼면 던져요 · 꽉 채울수록 ▼ 자리에 정확히'
       else if (p === 'wait') hint = game.mode === 'auto' ? '입질 기다리는 중… (자동)' : `입질 기다리는 중… (!) 뜨면 ${k}`
       else if (p === 'bite') hint = game.auto ? `자동 챔질 중 · ${k} 누르면 직접!` : `지금! ${k}`
       else if (p === 'fight') hint = game.auto ? '자동으로 끌어올리는 중…' : `${k} 꾹 = 감기 · 떼기 = 풀기`

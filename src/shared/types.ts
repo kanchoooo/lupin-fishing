@@ -12,6 +12,8 @@ export interface Settings {
   mouseClick: boolean
   /** 픽셀 크기 1·2·3배 */
   scale: number
+  /** 낚시 자리 (0 = 물가 · 1 = 가장 멀리) — 물 위 ▼ 를 끌어서 바꾼다 */
+  spot: number
   alwaysOnTop: boolean
   sound: boolean
   volume: number
