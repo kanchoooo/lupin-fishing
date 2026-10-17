@@ -1,0 +1,412 @@
+/* 낚시터 창: 크기는 픽셀 배율(--s)에 맞춘다. 글자는 갈무리 원래 크기의 정수배로만 */
+.widget {
+  --fs: 12px;
+  --fs-font: var(--pix);
+  --fl: 24px;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  overflow: hidden;
+  outline: 1px solid #2a2a2a;
+  outline-offset: -1px;
+}
+.widget.s1 {
+  --fs: 10px;
+  --fs-font: var(--pix-s);
+  --fl: 12px;
+}
+.widget.s3 {
+  --fs: 15px;
+  --fs-font: var(--pix-l);
+  --fl: 36px;
+}
+
+.bar {
+  -webkit-app-region: drag;
+  height: calc(14px * var(--s));
+  display: flex;
+  align-items: center;
+  gap: calc(3px * var(--s));
+  padding: 0 calc(3px * var(--s));
+  font-family: var(--fs-font);
+  font-size: var(--fs);
+  border-bottom: 1px solid #1e1e1e;
+  white-space: nowrap;
+  background: #000;
+}
+.bar button {
+  -webkit-app-region: no-drag;
+  appearance: none;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-2);
+  padding: 0 calc(2px * var(--s));
+  cursor: pointer;
+  line-height: 1.2;
+  font-family: var(--fs-font);
+  font-size: var(--fs);
+}
+.bar button:hover {
+  color: var(--text);
+  border-color: #3a3a3a;
+}
+.bar .ico {
+  min-width: calc(9px * var(--s));
+}
+.bar .mode {
+  color: var(--text);
+  border-color: #3a3a3a;
+}
+.bar .mode.auto {
+  color: #000;
+  background: var(--text-2);
+}
+.today {
+  color: var(--gold);
+}
+.faint {
+  color: var(--text-3);
+}
+.grow {
+  flex: 1;
+}
+
+.stage {
+  position: relative;
+  width: calc(176px * var(--s));
+  height: calc(96px * var(--s));
+  cursor: pointer;
+  font-family: var(--fs-font);
+  font-size: var(--fs);
+}
+.stage canvas {
+  display: block;
+}
+
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(1px * var(--s));
+  text-align: center;
+  color: var(--text-2);
+  pointer-events: none;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+.hint.hot {
+  color: var(--gold);
+  animation: blink 0.2s steps(2) infinite;
+}
+.stage-tag {
+  position: absolute;
+  left: calc(2px * var(--s));
+  top: calc(2px * var(--s));
+  color: #000;
+  background: var(--text);
+  padding: 0 calc(2px * var(--s));
+  pointer-events: none;
+}
+.label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(16px * var(--s));
+  text-align: center;
+  font-family: var(--pix);
+  font-weight: 700;
+  font-size: var(--fl);
+  pointer-events: none;
+  text-shadow: 2px 2px 0 #000;
+  animation: blink 0.25s steps(2) infinite;
+}
+.pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(34px * var(--s));
+  text-align: center;
+  font-family: var(--pix);
+  font-weight: 700;
+  font-size: var(--fl);
+  pointer-events: none;
+  text-shadow: 2px 2px 0 #000;
+  animation: pop-up 0.9s steps(6) forwards;
+}
+@keyframes pop-up {
+  0% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.fail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(18px * var(--s));
+  text-align: center;
+  pointer-events: none;
+}
+.fail-t {
+  font-family: var(--pix);
+  font-weight: 700;
+  font-size: var(--fl);
+  color: var(--red);
+  text-shadow: 2px 2px 0 #000;
+}
+.fail-s {
+  color: var(--text-2);
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+
+/* 잡았다! 카드 */
+.result {
+  position: absolute;
+  left: calc(4px * var(--s));
+  right: calc(4px * var(--s));
+  top: calc(6px * var(--s));
+  bottom: calc(6px * var(--s));
+  background: #000;
+  border: calc(1px * var(--s)) solid var(--r);
+  box-shadow: calc(2px * var(--s)) calc(2px * var(--s)) 0 #1e1e1e;
+  padding: calc(3px * var(--s)) calc(4px * var(--s));
+  display: flex;
+  flex-direction: column;
+  animation: card-in 0.25s steps(4);
+}
+@keyframes card-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+.res-tags {
+  display: flex;
+  gap: calc(2px * var(--s));
+  min-height: calc(9px * var(--s));
+}
+.tag {
+  color: #000;
+  background: var(--text-2);
+  padding: 0 calc(2px * var(--s));
+  line-height: 1.3;
+}
+.tag.new {
+  background: var(--gold);
+  animation: blink 0.4s steps(2) infinite;
+}
+.tag.rec {
+  background: var(--red);
+}
+.tag.hot {
+  background: var(--green);
+}
+.tag.perf {
+  background: var(--blue);
+}
+.res-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: calc(4px * var(--s));
+}
+.res-pic {
+  width: calc(60px * var(--s));
+  height: calc(40px * var(--s));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.res-info {
+  flex: 1;
+  min-width: 0;
+}
+.res-name {
+  font-family: var(--pix);
+  font-weight: 700;
+  color: var(--text);
+}
+.widget.s2 .res-name,
+.widget.s3 .res-name {
+  font-size: 24px;
+  line-height: 1.1;
+}
+.widget.s3 .res-name {
+  font-size: 36px;
+}
+.rar {
+  font-family: var(--fs-font);
+  font-weight: 400;
+  font-size: var(--fs);
+  color: var(--r);
+}
+.res-size {
+  color: var(--text-2);
+}
+.res-price {
+  color: var(--gold);
+  font-family: var(--pix);
+  font-weight: 700;
+  font-size: var(--fl);
+  line-height: 1.2;
+}
+.res-foot {
+  display: flex;
+  align-items: center;
+  gap: calc(3px * var(--s));
+  overflow: hidden;
+  white-space: nowrap;
+}
+.res-foot > span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rankup {
+  color: var(--gold);
+  animation: blink 0.4s steps(2) infinite;
+}
+.share {
+  appearance: none;
+  background: var(--text);
+  color: #000;
+  border: 0;
+  padding: 0 calc(3px * var(--s));
+  cursor: pointer;
+  font-family: var(--fs-font);
+  font-size: var(--fs);
+}
+
+.onboard {
+  position: absolute;
+  left: calc(48px * var(--s));
+  top: calc(12px * var(--s));
+  right: calc(18px * var(--s));
+  background: var(--text);
+  color: #000;
+  padding: calc(2px * var(--s)) calc(3px * var(--s));
+  pointer-events: none;
+  line-height: 1.35;
+  box-shadow: calc(2px * var(--s)) calc(2px * var(--s)) 0 #3a3a3a;
+}
+.toast {
+  position: absolute;
+  left: 50%;
+  top: calc(2px * var(--s));
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: #000;
+  padding: 0 calc(3px * var(--s));
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 위장: 평범한 표 계산 프로그램처럼 (상표 없음) */
+.sheet {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  color: #222;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  font-size: calc(5.5px * var(--s));
+  -webkit-font-smoothing: auto;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+  z-index: 10;
+}
+.sh-title {
+  -webkit-app-region: drag;
+  height: calc(14px * var(--s));
+  display: flex;
+  align-items: center;
+  gap: calc(3px * var(--s));
+  padding: 0 calc(4px * var(--s));
+  background: #44546a;
+  color: #fff;
+  font-size: calc(5.5px * var(--s));
+}
+.sh-dot {
+  width: calc(5px * var(--s));
+  height: calc(5px * var(--s));
+  background: #fff;
+  opacity: 0.8;
+}
+.sh-fx {
+  display: flex;
+  gap: calc(4px * var(--s));
+  padding: calc(1px * var(--s)) calc(3px * var(--s));
+  border-bottom: 1px solid #d4d4d4;
+  color: #444;
+}
+.sh-cell {
+  min-width: calc(14px * var(--s));
+  border-right: 1px solid #d4d4d4;
+}
+.sh-f {
+  color: #888;
+  font-style: italic;
+}
+.sh-grid {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  flex: 1;
+}
+.sh-grid th {
+  background: #f3f3f3;
+  color: #666;
+  font-weight: 400;
+  border: 1px solid #dcdcdc;
+  width: calc(10px * var(--s));
+}
+.sh-grid thead th:not(:first-child) {
+  width: auto;
+}
+.sh-grid td {
+  border: 1px solid #e3e3e3;
+  padding: 0 calc(2px * var(--s));
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sh-grid td.hd {
+  font-weight: 700;
+  background: #eef1f5;
+}
+.sh-grid td.num {
+  text-align: right;
+}
+.sh-grid td.sel {
+  outline: 2px solid #44546a;
+  outline-offset: -2px;
+}
+.sh-tabs {
+  display: flex;
+  gap: calc(1px * var(--s));
+  padding: calc(1px * var(--s)) calc(3px * var(--s));
+  background: #f3f3f3;
+  border-top: 1px solid #d4d4d4;
+  color: #666;
+}
+.sh-tabs span {
+  padding: 0 calc(4px * var(--s));
+}
+.sh-tabs .on {
+  background: #fff;
+  color: #44546a;
+  font-weight: 700;
+  border-bottom: 2px solid #44546a;
+}

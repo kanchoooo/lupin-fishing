@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>월급루팡 낚시터 다운로드</title>
+    <meta name="description" content="일하는 척하면서 화면 구석에서 낚시하기. 엑셀을 켜 놓은 채로 Ctrl 키만 눌러 물고기를 낚아 오늘 수익을 올려요." />
+    <meta property="og:title" content="🎣 월급루팡 낚시터" />
+    <meta property="og:description" content="일하는 척하면서 화면 구석에서 낚시하기. Ctrl 키 하나로 낚고, 위장 키 하나로 업무 화면 변신!" />
+    <meta property="og:image" content="https://kanchoooo.github.io/lupin-fishing/img/screen.png" />
+    <link rel="icon" href="img/icon.png" />
+    <style>
+      /* 다운로드 링크: GitHub Releases 의 latest/download 는 주소가 고정이라 새 버전이 나와도 그대로 쓸 수 있다 */
+      :root {
+        --bg: #000;
+        --dot: #161616;
+        --line: #3a3a3a;
+        --text: #ececec;
+        --text-2: #9a9a9a;
+        --gold: #ffd23f;
+        --red: #ff4d4d;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+        color: var(--text);
+        background: var(--bg) radial-gradient(var(--dot) 1.5px, transparent 1.5px) 0 0 / 12px 12px;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 36px 16px 64px;
+      }
+      header {
+        text-align: center;
+        margin-bottom: 22px;
+      }
+      header img {
+        width: 96px;
+        height: 96px;
+        image-rendering: pixelated;
+      }
+      .logo {
+        font-size: 34px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin-top: 6px;
+      }
+      .tag {
+        color: var(--text-2);
+        margin-top: 8px;
+        line-height: 1.7;
+      }
+      .tag b {
+        color: var(--gold);
+      }
+      .shot {
+        display: block;
+        width: 100%;
+        border: 2px solid var(--line);
+        margin: 0 0 22px;
+        image-rendering: pixelated;
+      }
+      .card {
+        border: 2px solid var(--text);
+        background: #050505;
+        padding: 18px;
+        box-shadow: 6px 6px 0 #1e1e1e;
+      }
+      .btns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .dl {
+        display: block;
+        text-align: center;
+        text-decoration: none;
+        padding: 16px 10px;
+        border: 2px solid var(--text);
+        color: var(--text);
+        font-weight: 700;
+        font-size: 17px;
+      }
+      .dl small {
+        display: block;
+        font-weight: 400;
+        font-size: 12px;
+        color: var(--text-2);
+        margin-top: 4px;
+      }
+      .dl.main {
+        background: var(--text);
+        color: #000;
+      }
+      .dl.main small {
+        color: #333;
+      }
+      .note {
+        color: var(--text-2);
+        font-size: 13px;
+        line-height: 1.7;
+        margin-top: 14px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 30px 0 10px;
+      }
+      ul.feat {
+        padding-left: 18px;
+        line-height: 1.9;
+        color: var(--text-2);
+      }
+      ul.feat b {
+        color: var(--text);
+      }
+      .promo {
+        margin-top: 30px;
+        border: 2px solid var(--gold);
+        padding: 18px;
+        text-align: center;
+        line-height: 1.8;
+      }
+      .promo b {
+        color: var(--gold);
+      }
+      .promo a {
+        display: inline-block;
+        margin: 10px 6px 0;
+        padding: 10px 16px;
+        border: 2px solid var(--text);
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 700;
+      }
+      .promo a.ig {
+        background: var(--text);
+        color: #000;
+      }
+      footer {
+        text-align: center;
+        color: #5f5f5f;
+        font-size: 12px;
+        margin-top: 30px;
+      }
+      @media (max-width: 520px) {
+        .btns {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <img src="img/icon.png" alt="" />
+        <div class="logo">월급루팡 낚시터</div>
+        <div class="tag">
+          일하는 척하면서, 화면 구석에서 낚시하기.<br />
+          엑셀을 켜 놓은 채로 <b>Ctrl</b> 키만 눌러 물고기를 낚아요.
+        </div>
+      </header>
+
+      <img class="shot" src="img/screen.png" alt="월급루팡 낚시터 화면" />
+
+      <div class="card">
+        <div class="btns">
+          <a id="mac" class="dl" href="https://github.com/kanchoooo/lupin-fishing/releases/latest/download/LupinFishing-mac.dmg">
+            맥용 다운로드<small>macOS 13 이상 · 애플 실리콘 / 인텔</small>
+          </a>
+          <a id="win" class="dl" href="https://github.com/kanchoooo/lupin-fishing/releases/latest/download/LupinFishing-Setup.exe">
+            윈도우용 다운로드<small>Windows 10 / 11</small>
+          </a>
+        </div>
+        <div class="note">
+          윈도우에서 "Windows의 PC 보호" 창이 뜨면 <b>추가 정보 → 실행</b>을 눌러 주세요.<br />
+          맥은 받은 dmg 를 열어 앱을 응용 프로그램 폴더로 끌어 넣으면 끝. 낚시터는 메뉴 막대의 찌 아이콘에서 다시 꺼낼 수 있어요.
+        </div>
+      </div>
+
+      <h2>이런 게임이에요</h2>
+      <ul class="feat">
+        <li><b>늘 맨 위에 떠 있는 작은 낚시터</b> — 아무 데나 끌어다 두기</li>
+        <li><b>다른 창을 쓰는 중에도 키 하나로</b> — 키 입력을 가로채지 않아 일에는 영향 없음 · 키는 아무 키로나 바꾸기</li>
+        <li><b>손맛 3단계</b> — ① 입질 챔질 ② 장력 보며 힘겨루기 ③ 타이밍 맞춰 피니시</li>
+        <li><b>자동 낚시</b> — 알아서 낚지만 성공률이 낮아요. 전설은 손맛으로만!</li>
+        <li><b>위장 키</b> — 누르면 낚시터가 업무용 표로 변신</li>
+        <li><b>물고기 도감 26종</b> — 회식 메기 · 야근 장어 · 칼퇴 연어 · 법카 오징어 · 퇴사 잉어 · 부장님 넥타이…</li>
+        <li><b>오늘 수익 · 누적 수익 · 날짜별 수익</b> — 크기·희귀도대로 판매. 누적 수익으로 인턴부터 전설의 월급루팡까지 승진</li>
+        <li><b>자랑하기</b> — "14:32 식곤증 타임에 칼퇴 연어를 낚았다!" 카드 · 오늘의 루팡 리포트</li>
+      </ul>
+
+      <div class="promo">
+        이런 재밌는 앱, 또 만들어요.<br />
+        인스타그램 <b>@easyticket.co.kr</b> 를 팔로우하면 새로 나온 앱을 바로바로 해볼 수 있어요!
+        <div>
+          <a class="ig" href="https://www.instagram.com/easyticket.co.kr/">인스타그램 보기</a>
+          <a href="https://easyticket.co.kr/apps/">개발자의 다른 앱 보기</a>
+        </div>
+      </div>
+
+      <footer>월급루팡 낚시터 · 그림과 효과음은 모두 오리지널 · 글꼴 갈무리(SIL OFL)</footer>
+    </div>
+    <script>
+      // 내 운영체제 버튼을 먼저 강조
+      const ua = navigator.userAgent
+      const os = /Mac/i.test(ua) ? 'mac' : /Win/i.test(ua) ? 'win' : null
+      if (os) document.getElementById(os).classList.add('main')
+      else document.getElementById('mac').classList.add('main')
+    </script>
+  </body>
+</html>

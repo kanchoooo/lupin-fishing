@@ -1,0 +1,513 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.faint {
+  color: var(--text-3);
+}
+.text {
+  color: var(--text);
+}
+.gold {
+  color: var(--gold);
+}
+.red {
+  color: var(--red);
+}
+.green {
+  color: var(--green);
+}
+.small {
+  font-size: 10px;
+  font-family: var(--pix-s);
+}
+.center {
+  text-align: center;
+  justify-content: center;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.between {
+  justify-content: space-between;
+}
+.big {
+  font-size: 24px;
+  line-height: 1;
+}
+.ell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.head {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line-2);
+}
+.head.mac {
+  padding-left: 82px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.logo-bob {
+  width: 6px;
+  height: 12px;
+  background: linear-gradient(var(--red) 50%, var(--text) 50%);
+}
+.head-right {
+  display: flex;
+  gap: 10px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+.tabs button {
+  flex: 1;
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 0 6px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.tabs button.on {
+  color: var(--text);
+  border-bottom-color: var(--text);
+  background: #111;
+}
+.tabs button:hover {
+  color: var(--text);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px 16px;
+  user-select: text;
+}
+.body::-webkit-scrollbar {
+  width: 8px;
+}
+.body::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+}
+
+.foot {
+  border-top: 1px solid var(--line);
+  padding: 8px 14px 10px;
+  background: #070707;
+}
+.foot-msg {
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+.foot-msg b {
+  color: var(--gold);
+}
+.foot-btns {
+  display: flex;
+  gap: 8px;
+}
+.foot-btns .pix-btn {
+  flex: 1;
+}
+
+.box {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sec-h {
+  color: var(--text-2);
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 4px;
+}
+.note {
+  color: var(--green);
+}
+.mini,
+.link,
+.key,
+.chip {
+  white-space: nowrap;
+  appearance: none;
+  background: #000;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  padding: 1px 6px;
+  cursor: pointer;
+}
+.mini:hover,
+.chip:hover,
+.key:hover {
+  color: var(--text);
+  border-color: var(--text-2);
+}
+.mini.danger {
+  color: #000;
+  background: var(--red);
+  border-color: var(--red);
+}
+.link {
+  border: 0;
+  text-decoration: underline;
+  align-self: center;
+}
+
+/* 도감 */
+.dex {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hot-line {
+  color: var(--text-2);
+}
+.hot-line b {
+  color: var(--green);
+}
+.dex-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dex-h {
+  display: flex;
+  justify-content: space-between;
+}
+.rar {
+  color: var(--r);
+}
+.dex-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.dex-cell {
+  position: relative;
+  appearance: none;
+  background: #070707;
+  border: 1px solid #1e1e1e;
+  padding: 6px 2px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-3);
+  min-width: 0;
+}
+.dex-cell.got {
+  border-color: var(--line);
+  color: var(--text);
+}
+.dex-cell.got {
+  box-shadow: inset 0 -2px 0 var(--r);
+}
+.dex-cell.sel {
+  border-color: var(--text);
+}
+.dex-cell:hover {
+  border-color: var(--text-2);
+}
+.dc-name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.dc-sub {
+  font-family: var(--pix-s);
+  font-size: 10px;
+  color: var(--text-3);
+}
+.dex-cell .hot {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  background: var(--green);
+  color: #000;
+  font-family: var(--pix-s);
+  font-size: 10px;
+  padding: 0 2px;
+}
+.dex-detail {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--r);
+  padding: 10px;
+  background: #070707;
+}
+.dd-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dd-name {
+  font-weight: 700;
+}
+.dd-x {
+  position: absolute;
+  right: 4px;
+  top: 2px;
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+/* 수익 */
+.today-box {
+  align-items: center;
+  text-align: center;
+}
+.today-big {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1.2;
+}
+.rank {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.rank-name {
+  font-weight: 700;
+}
+.meter {
+  height: 6px;
+  background: #1e1e1e;
+}
+.meter > div {
+  height: 100%;
+  background: var(--gold);
+}
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 96px;
+  padding-top: 4px;
+}
+.chart .col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+.bar-v {
+  width: 100%;
+  background: var(--text-2);
+}
+.chart .col.now .bar-v {
+  background: var(--gold);
+}
+.col-l {
+  font-family: var(--pix-s);
+  font-size: 10px;
+  color: var(--text-3);
+  height: 14px;
+  white-space: nowrap;
+}
+.chart .col.now .col-l {
+  color: var(--gold);
+}
+.days {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.days td {
+  padding: 3px 2px;
+  border-bottom: 1px dashed #1e1e1e;
+}
+.days td:first-child {
+  width: 34%;
+}
+.days td:nth-child(2) {
+  width: 26%;
+}
+.days td:nth-child(3) {
+  width: 15%;
+}
+.days td:last-child {
+  width: 48px;
+  text-align: right;
+}
+.days tr.now td:first-child {
+  color: var(--gold);
+}
+.recent {
+  display: flex;
+  flex-direction: column;
+}
+.rec-row {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed #1e1e1e;
+  color: var(--text);
+  display: grid;
+  grid-template-columns: 30% 1fr 18% 22%;
+  gap: 4px;
+  padding: 3px 2px;
+  text-align: left;
+  cursor: pointer;
+}
+.rec-row:hover {
+  background: #111;
+}
+
+/* 설정 */
+.set-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.set-row.col {
+  flex-direction: column;
+  align-items: stretch;
+  border-bottom: 1px dashed #1e1e1e;
+  padding-bottom: 8px;
+}
+.key {
+  color: var(--text);
+  min-width: 120px;
+  padding: 3px 8px;
+}
+.key.cap {
+  color: #000;
+  background: var(--gold);
+  border-color: var(--gold);
+  animation: blinkp 0.6s steps(2) infinite;
+}
+@keyframes blinkp {
+  50% {
+    opacity: 0.6;
+  }
+}
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chip.on {
+  color: #000;
+  background: var(--text);
+  border-color: var(--text);
+}
+.ok {
+  color: var(--green);
+}
+.warn {
+  color: #e6a23c;
+}
+.check,
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.check input,
+.radio input {
+  accent-color: #ececec;
+}
+.range {
+  flex: 1;
+  accent-color: #ececec;
+}
+.keytest {
+  border: 1px dashed var(--line);
+  padding: 4px 8px;
+}
+.seg {
+  display: flex;
+}
+.seg button {
+  appearance: none;
+  background: #000;
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  padding: 2px 10px;
+  cursor: pointer;
+  margin-left: -1px;
+}
+.seg button.on {
+  background: var(--text);
+  color: #000;
+  border-color: var(--text);
+}
+.input {
+  width: 90px;
+  background: #000;
+  border: 1px solid var(--line);
+  padding: 2px 6px;
+  text-align: right;
+}
+
+/* 정보 */
+.intro {
+  align-items: center;
+  text-align: center;
+}
+.intro-fish {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.intro-t {
+  font-size: 15px;
+  font-family: var(--pix-l);
+}
+.howto ol,
+.howto ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.promo {
+  align-items: center;
+  text-align: center;
+  border-color: var(--gold);
+}
+.promo-t {
+  font-weight: 700;
+  color: var(--gold);
+}
