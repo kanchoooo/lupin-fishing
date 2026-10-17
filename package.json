@@ -1,6 +1,6 @@
 {
   "name": "lupin-fishing",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "월급루팡 낚시터 — 일하는 척하면서 화면 구석에서 낚시하는 도트 게임",
   "main": "./out/main/index.js",
